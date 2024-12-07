@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Pages on The Orange Flavored Whisper</title><link>https://realcedriccheng.github.io/page/</link><description>Recent content in Pages on The Orange Flavored Whisper</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 06 Mar 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://realcedriccheng.github.io/page/index.xml" rel="self" type="application/rss+xml"/><item><title>About</title><link>https://realcedriccheng.github.io/about/</link><pubDate>Sun, 06 Mar 2022 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/about/</guid><description>&lt;h1 id="cedric-cheng">Cedric Cheng
+&lt;/h1>&lt;p>Master student in Computer System Architecture.&lt;/p>
+&lt;p>🏫 Huazhong University of Science and Technology (HUST)&lt;/p>
+&lt;h1 id="linux-kernel-patch">Linux Kernel Patch
+&lt;/h1>&lt;ul>
+&lt;li>&lt;a class="link" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b722ff8ad66cf9beba971d9eb4bb7b5e6265ae5c" target="_blank" rel="noopener"
+>Patch &amp;ldquo;Revert &amp;ldquo;f2fs: use flush command instead of FUA for zoned device&amp;rdquo;&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h1 id="other-open-source-contributions">Other Open Source Contributions
+&lt;/h1>&lt;ul>
+&lt;li>FEMU: &lt;a class="link" href="https://github.com/MoatLab/FEMU/pull/160#event-15256193601" target="_blank" rel="noopener"
+>fix a typo: id_zns-&amp;gt;stripe_uint ==&amp;gt; id_zns-&amp;gt;stripe_unit&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>Archives</title><link>https://realcedriccheng.github.io/archives/</link><pubDate>Sun, 06 Mar 2022 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/archives/</guid><description/></item><item><title>Search</title><link>https://realcedriccheng.github.io/search/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/search/</guid><description/></item></channel></rss>

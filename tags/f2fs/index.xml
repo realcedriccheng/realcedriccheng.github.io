@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>F2FS on The Orange Flavored Whisper</title><link>https://realcedriccheng.github.io/tags/f2fs/</link><description>Recent content in F2FS on The Orange Flavored Whisper</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sat, 07 Dec 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://realcedriccheng.github.io/tags/f2fs/index.xml" rel="self" type="application/rss+xml"/><item><title>F2FS 文件系统相关概念</title><link>https://realcedriccheng.github.io/p/concepts_on_f2fs_filesystem/</link><pubDate>Sat, 07 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/concepts_on_f2fs_filesystem/</guid><description>&lt;blockquote>
+&lt;p>可参看https://github.com/RiweiPan/F2FS-NOTES/&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="ipu-和-opu">IPU 和 OPU
+&lt;/h2>&lt;p>ipu，in-place-update 就地更新：在原地更新数据。传统文件系统如 ext4 都采用。&lt;/p>
+&lt;p>opu，out-of-place-update 异地更新：将更新后的数据写在新的地址，修改映射到新地址。&lt;/p>
+&lt;ol>
+&lt;li>分配一个新的物理地址&lt;/li>
+&lt;li>将数据写入新的物理地址&lt;/li>
+&lt;li>将旧的物理地址无效掉，然后等GC回收&lt;/li>
+&lt;li>更新逻辑地址和物理地址的映射关系&lt;/li>
+&lt;/ol>
+&lt;p>异地更新更适合闪存特性。 OPU 的缺点在于（1）产生无效块，造成 GC 开销；（2）更新元数据的开销；（3）数据碎片化&lt;/p></description></item></channel></rss>
