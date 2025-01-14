@@ -187,7 +187,7 @@ node的footer中记录了下一个node的地址，通过blkaddr = next_blkaddr_o
 ### 扫描范围
 
 第二次扫描的范围和第一次相同。
-
+ 
 ### 扫描过程
 
 将当前扫描到的 node page （设为P）读上来，检查是否属于第一轮扫描中加入到 inode_list 链表中的文件。如果是，则通过 do_recover_data 利用P的内容恢复数据。
