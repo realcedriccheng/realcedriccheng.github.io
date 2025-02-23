@@ -19,7 +19,7 @@ subtitle = "on tech notes"
 [sidebar.avatar]
 enabled = true
 local = true
-src = "img/avatar1.jpg"
+src = "img/avatar.jfif"
 
 [article]
 headingAnchor = false
