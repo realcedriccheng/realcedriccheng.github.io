@@ -13,3 +13,5 @@ menu:
 还是直接链接到在线文档比较方便。
 
 >> -> [To whom it may concern](https://fcn61ac274zh.feishu.cn/wiki/SunXw1LmbiiyzAkxCe6cgvpYnGg) <-
+
+>> -> [Cedric Update](https://kdocs.cn/l/crn5hnKYJ7Tt) <-
