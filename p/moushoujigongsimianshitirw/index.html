@@ -1,0 +1,524 @@
+<!doctype html><html lang=en dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="（AI生成）\n题目 有 2 个 api aligned read 和 write，调用他们实现其中的 read 和 write 调用接口\n请使用C语言帮我实现程序，并给出思路和代码的详细注释：\naligned size = 4kb\nint aligned read(int fd, void *buf, u64 pos u64 len)\n"><title>某手机公司面试题：实现 read/write 接口</title><link rel=canonical href=https://realcedriccheng.github.io/p/moushoujigongsimianshitirw/><link rel=stylesheet href=/scss/style.min.946cca6c6259ef94ac55abfae7c7bf3291ea3ed5eea17ef77500b257217c6710.css><meta property='og:title' content="某手机公司面试题：实现 read/write 接口"><meta property='og:description' content="（AI生成）\n题目 有 2 个 api aligned read 和 write，调用他们实现其中的 read 和 write 调用接口\n请使用C语言帮我实现程序，并给出思路和代码的详细注释：\naligned size = 4kb\nint aligned read(int fd, void *buf, u64 pos u64 len)\n"><meta property='og:url' content='https://realcedriccheng.github.io/p/moushoujigongsimianshitirw/'><meta property='og:site_name' content='The Orange Flavored Whisper'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='C/C++'><meta property='article:published_time' content='2025-02-26T00:00:00+00:00'><meta property='article:modified_time' content='2025-02-26T00:00:00+00:00'><meta name=twitter:title content="某手机公司面试题：实现 read/write 接口"><meta name=twitter:description content="（AI生成）\n题目 有 2 个 api aligned read 和 write，调用他们实现其中的 read 和 write 调用接口\n请使用C语言帮我实现程序，并给出思路和代码的详细注释：\naligned size = 4kb\nint aligned read(int fd, void *buf, u64 pos u64 len)\n"><link rel="shortcut icon" href=/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label="Toggle Menu">
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar_hu_5b3a75c4f0fbbc6c.jfif width=300 height=300 class=site-logo loading=lazy alt=Avatar>
+</a><span class=emoji>🍊</span></figure><div class=site-meta><h1 class=site-name><a href=/>The Orange Flavored Whisper</a></h1><h2 class=site-description>on tech notes</h2></div></header><ol class=menu-social><li><a href=https://github.com/realcedriccheng/ target=_blank title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>Home</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>Archives</span></a></li><li><a href=/cu/><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-lemon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17.536 3.393c3.905 3.906 3.905 10.237.0 14.143-3.906 3.905-10.237 3.905-14.143.0L17.536 3.393"/><path d="M5.868 15.06a6.5 6.5.0 009.193-9.192"/><path d="M10.464 10.464l4.597 4.597"/><path d="M10.464 10.464v6.364"/><path d="M10.464 10.464h6.364"/></svg>
+<span>Cedric Update</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>Search</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>Dark Mode</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">Table of contents</h2><div class=widget--toc><nav id=TableOfContents><ol><li><ol><li><a href=#1-分块处理>1. 分块处理</a></li><li><a href=#2-避免不必要的内存分配>2. 避免不必要的内存分配</a></li><li><a href=#3-使用内存映射文件mmap>3. 使用内存映射文件（mmap）</a></li><li><a href=#优化后的代码实现>优化后的代码实现</a></li><li><a href=#详细注释-1>详细注释</a></li></ol></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/%E9%9D%A2%E7%BB%8F/>面经</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/moushoujigongsimianshitirw/>某手机公司面试题：实现 read/write 接口</a></h2></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>Feb 26, 2025</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>6 minute read</time></div></footer></div></header><section class=article-content><p>（AI生成）</p><h1 id=题目>题目</h1><p>有 2 个 api aligned read 和 write，调用他们实现其中的 read 和 write 调用接口</p><p>请使用C语言帮我实现程序，并给出思路和代码的详细注释：</p><p>aligned size = 4kb</p><p>int aligned read(int fd, void *buf, u64 pos u64 len)</p><p>int read(int fd, void *buf，u64 pos, u64 len)</p><p>int aligned write(int fd, void *buf, u64 pos, u64 len)</p><p>int write(int fd, void *buf，u64 pos, u64 len)</p><h1 id=思路>思路</h1><p>为了实现 <code>read</code> 和 <code>write</code> 接口，我们需要调用 <code>aligned_read</code> 和 <code>aligned_write</code> API。这两个 API 要求缓冲区和位置都是对齐的（aligned size = 4KB）。因此，我们需要确保在调用 <code>aligned_read</code> 和 <code>aligned_write</code> 时，缓冲区和位置都是 4KB 对齐的。</p><p>对齐检查:</p><p>确保传递给 <code>aligned_read</code> 和 <code>aligned_write</code> 的缓冲区和位置都是 4KB 对齐的。</p><p>分段处理:</p><p>如果读取或写入的范围不对齐，我们需要分段处理对齐的部分和非对齐的部分。</p><p>缓冲区管理:</p><p>使用临时缓冲区来处理非对齐的部分。</p><h1 id=代码实现>代码实现</h1><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdio.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdlib.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;string.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;unistd.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdint.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=cp>#define ALIGN_SIZE 4096
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=c1>// 模拟 aligned_read 和 aligned_write API
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>aligned_read</span><span class=p>(</span><span class=kt>int</span> <span class=n>fd</span><span class=p>,</span> <span class=kt>void</span> <span class=o>*</span><span class=n>buf</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>pos</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>len</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=c1>// 模拟读取操作
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=nf>lseek</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>SEEK_SET</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nf>read</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>buf</span><span class=p>,</span> <span class=n>len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kt>int</span> <span class=nf>aligned_write</span><span class=p>(</span><span class=kt>int</span> <span class=n>fd</span><span class=p>,</span> <span class=kt>void</span> <span class=o>*</span><span class=n>buf</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>pos</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>len</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=c1>// 模拟写入操作
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=nf>lseek</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>SEEK_SET</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nf>write</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>buf</span><span class=p>,</span> <span class=n>len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// 实现 read 接口
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>read</span><span class=p>(</span><span class=kt>int</span> <span class=n>fd</span><span class=p>,</span> <span class=kt>void</span> <span class=o>*</span><span class=n>buf</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>pos</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>len</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>&amp;</span> <span class=o>~</span><span class=p>(</span><span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>end_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>len</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_end_pos</span> <span class=o>=</span> <span class=p>(</span><span class=n>end_pos</span> <span class=o>+</span> <span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>&amp;</span> <span class=o>~</span><span class=p>(</span><span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_len</span> <span class=o>=</span> <span class=n>aligned_end_pos</span> <span class=o>-</span> <span class=n>aligned_pos</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>void</span> <span class=o>*</span><span class=n>aligned_buf</span> <span class=o>=</span> <span class=nf>aligned_alloc</span><span class=p>(</span><span class=n>ALIGN_SIZE</span><span class=p>,</span> <span class=n>aligned_len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>aligned_buf</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;aligned_alloc&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=o>-</span><span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1>// 读取对齐的范围
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=kt>int</span> <span class=n>ret</span> <span class=o>=</span> <span class=nf>aligned_read</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>aligned_buf</span><span class=p>,</span> <span class=n>aligned_pos</span><span class=p>,</span> <span class=n>aligned_len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=n>ret</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>free</span><span class=p>(</span><span class=n>aligned_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>ret</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1>// 复制所需的数据到目标缓冲区
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=nf>memcpy</span><span class=p>(</span><span class=n>buf</span><span class=p>,</span> <span class=p>(</span><span class=kt>char</span> <span class=o>*</span><span class=p>)</span><span class=n>aligned_buf</span> <span class=o>+</span> <span class=p>(</span><span class=n>pos</span> <span class=o>-</span> <span class=n>aligned_pos</span><span class=p>),</span> <span class=n>len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nf>free</span><span class=p>(</span><span class=n>aligned_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>len</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// 实现 write 接口
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>write</span><span class=p>(</span><span class=kt>int</span> <span class=n>fd</span><span class=p>,</span> <span class=kt>void</span> <span class=o>*</span><span class=n>buf</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>pos</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>len</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>&amp;</span> <span class=o>~</span><span class=p>(</span><span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>end_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>len</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_end_pos</span> <span class=o>=</span> <span class=p>(</span><span class=n>end_pos</span> <span class=o>+</span> <span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>&amp;</span> <span class=o>~</span><span class=p>(</span><span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_len</span> <span class=o>=</span> <span class=n>aligned_end_pos</span> <span class=o>-</span> <span class=n>aligned_pos</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>void</span> <span class=o>*</span><span class=n>aligned_buf</span> <span class=o>=</span> <span class=nf>aligned_alloc</span><span class=p>(</span><span class=n>ALIGN_SIZE</span><span class=p>,</span> <span class=n>aligned_len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>aligned_buf</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;aligned_alloc&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=o>-</span><span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1>// 读取对齐的范围
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=kt>int</span> <span class=n>ret</span> <span class=o>=</span> <span class=nf>aligned_read</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>aligned_buf</span><span class=p>,</span> <span class=n>aligned_pos</span><span class=p>,</span> <span class=n>aligned_len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=n>ret</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>free</span><span class=p>(</span><span class=n>aligned_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>ret</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1>// 复制新的数据到对齐缓冲区
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=nf>memcpy</span><span class=p>((</span><span class=kt>char</span> <span class=o>*</span><span class=p>)</span><span class=n>aligned_buf</span> <span class=o>+</span> <span class=p>(</span><span class=n>pos</span> <span class=o>-</span> <span class=n>aligned_pos</span><span class=p>),</span> <span class=n>buf</span><span class=p>,</span> <span class=n>len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1>// 写入对齐的范围
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=n>ret</span> <span class=o>=</span> <span class=nf>aligned_write</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>aligned_buf</span><span class=p>,</span> <span class=n>aligned_pos</span><span class=p>,</span> <span class=n>aligned_len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nf>free</span><span class=p>(</span><span class=n>aligned_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>ret</span> <span class=o>&lt;</span> <span class=mi>0</span> <span class=o>?</span> <span class=nl>ret</span> <span class=p>:</span> <span class=n>len</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// 测试函数
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>main</span><span class=p>()</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=c1>// 示例文件操作
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=kt>int</span> <span class=n>fd</span> <span class=o>=</span> <span class=nf>open</span><span class=p>(</span><span class=s>&#34;testfile.txt&#34;</span><span class=p>,</span> <span class=n>O_RDWR</span> <span class=o>|</span> <span class=n>O_CREAT</span><span class=p>,</span> <span class=mo>0644</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=n>fd</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;open&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kt>char</span> <span class=n>write_buf</span><span class=p>[]</span> <span class=o>=</span> <span class=s>&#34;Hello, this is a test for aligned write and read.&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>char</span> <span class=n>read_buf</span><span class=p>[</span><span class=k>sizeof</span><span class=p>(</span><span class=n>write_buf</span><span class=p>)];</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1>// 写入数据
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=k>if</span> <span class=p>(</span><span class=nf>write</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>write_buf</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=k>sizeof</span><span class=p>(</span><span class=n>write_buf</span><span class=p>))</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;write&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=nf>close</span><span class=p>(</span><span class=n>fd</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1>// 读取数据
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=k>if</span> <span class=p>(</span><span class=nf>read</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>read_buf</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=k>sizeof</span><span class=p>(</span><span class=n>read_buf</span><span class=p>))</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;read&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=nf>close</span><span class=p>(</span><span class=n>fd</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nf>printf</span><span class=p>(</span><span class=s>&#34;读取的数据: %s</span><span class=se>\n</span><span class=s>&#34;</span><span class=p>,</span> <span class=n>read_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nf>close</span><span class=p>(</span><span class=n>fd</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h1 id=详细注释>详细注释</h1><ol><li>aligned_read 和 aligned_write 模拟:</li></ol><ul><li>这两个函数模拟了对齐的读取和写入操作，实际实现中可能需要根据具体需求进行调整。</li></ul><ol start=2><li>read 接口:</li></ol><ul><li>对齐计算:</li><li>计算对齐的起始位置 <code>aligned_pos</code> 和结束位置 <code>aligned_end_pos</code>。</li><li>分配对齐缓冲区:</li><li>使用 <code>aligned_alloc</code> 分配对齐的缓冲区。</li><li>读取对齐的范围:</li><li>调用 <code>aligned_read</code> 读取对齐范围的数据。</li><li>复制数据:</li><li>从对齐缓冲区复制所需的数据到目标缓冲区。</li><li>释放缓冲区:</li><li>释放分配的对齐缓冲区。</li></ul><ol start=3><li>write 接口:</li></ol><ul><li>对齐计算:</li><li>计算对齐的起始位置 <code>aligned_pos</code> 和结束位置 <code>aligned_end_pos</code>。</li><li>分配对齐缓冲区:</li><li>使用 <code>aligned_alloc</code> 分配对齐的缓冲区。</li><li>读取对齐的范围:</li><li>调用 <code>aligned_read</code> 读取对齐范围的数据。</li><li>复制数据:</li><li>将新的数据复制到对齐缓冲区的相应位置。</li><li>写入对齐的范围:</li><li>调用 <code>aligned_write</code> 写入对齐范围的数据。</li><li>释放缓冲区:</li><li>释放分配的对齐缓冲区。</li></ul><p>通过上述方法，我们可以确保在调用 <code>aligned_read</code> 和 <code>aligned_write</code> 时，缓冲区和位置都是 4KB 对齐的，从而实现高效的读取和写入操作。</p><h1 id=追加问题>追加问题</h1><p>如果系统内存是有限的，读和写可以做哪些优化？</p><p>在内存有限的情况下，我们可以对读和写操作进行一些优化，以减少内存使用和提高性能。以下是一些优化策略：</p><h3 id=1-分块处理>1. 分块处理</h3><p>对于大文件的读写操作，可以将文件分成多个小块进行处理，每次只处理一个小块，从而减少内存消耗。</p><h3 id=2-避免不必要的内存分配>2. 避免不必要的内存分配</h3><p>尽量避免频繁的内存分配和释放操作，可以复用已经分配的内存缓冲区。</p><h3 id=3-使用内存映射文件mmap>3. 使用内存映射文件（mmap）</h3><p>内存映射文件可以将文件的一部分映射到内存中，从而减少内存拷贝的开销，提高读写性能。</p><h3 id=优化后的代码实现>优化后的代码实现</h3><p>以下是优化后的代码实现，使用分块处理来减少内存消耗：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-c data-lang=c><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdio.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdlib.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;string.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;unistd.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;fcntl.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdint.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;errno.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=cp>#define ALIGN_SIZE 4096
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=c1>// 模拟 aligned_read 和 aligned_write API
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>aligned_read</span><span class=p>(</span><span class=kt>int</span> <span class=n>fd</span><span class=p>,</span> <span class=kt>void</span> <span class=o>*</span><span class=n>buf</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>pos</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>len</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=c1>// 模拟读取操作
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=nf>lseek</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>SEEK_SET</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nf>read</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>buf</span><span class=p>,</span> <span class=n>len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kt>int</span> <span class=nf>aligned_write</span><span class=p>(</span><span class=kt>int</span> <span class=n>fd</span><span class=p>,</span> <span class=kt>void</span> <span class=o>*</span><span class=n>buf</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>pos</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>len</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=c1>// 模拟写入操作
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=nf>lseek</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>SEEK_SET</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nf>write</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>buf</span><span class=p>,</span> <span class=n>len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// 实现 read 接口
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>read</span><span class=p>(</span><span class=kt>int</span> <span class=n>fd</span><span class=p>,</span> <span class=kt>void</span> <span class=o>*</span><span class=n>buf</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>pos</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>len</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>&amp;</span> <span class=o>~</span><span class=p>(</span><span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>end_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>len</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_end_pos</span> <span class=o>=</span> <span class=p>(</span><span class=n>end_pos</span> <span class=o>+</span> <span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>&amp;</span> <span class=o>~</span><span class=p>(</span><span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_len</span> <span class=o>=</span> <span class=n>aligned_end_pos</span> <span class=o>-</span> <span class=n>aligned_pos</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>void</span> <span class=o>*</span><span class=n>aligned_buf</span> <span class=o>=</span> <span class=nf>aligned_alloc</span><span class=p>(</span><span class=n>ALIGN_SIZE</span><span class=p>,</span> <span class=n>ALIGN_SIZE</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>aligned_buf</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;aligned_alloc&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=o>-</span><span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>bytes_read</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=p>(</span><span class=n>bytes_read</span> <span class=o>&lt;</span> <span class=n>len</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>uint64_t</span> <span class=n>chunk_pos</span> <span class=o>=</span> <span class=n>aligned_pos</span> <span class=o>+</span> <span class=n>bytes_read</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=kt>uint64_t</span> <span class=n>chunk_len</span> <span class=o>=</span> <span class=n>ALIGN_SIZE</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>chunk_pos</span> <span class=o>+</span> <span class=n>chunk_len</span> <span class=o>&gt;</span> <span class=n>end_pos</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=n>chunk_len</span> <span class=o>=</span> <span class=n>end_pos</span> <span class=o>-</span> <span class=n>chunk_pos</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1>// 读取对齐的范围
+</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=kt>int</span> <span class=n>ret</span> <span class=o>=</span> <span class=nf>aligned_read</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>aligned_buf</span><span class=p>,</span> <span class=n>chunk_pos</span><span class=p>,</span> <span class=n>chunk_len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>ret</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=nf>free</span><span class=p>(</span><span class=n>aligned_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>ret</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1>// 复制所需的数据到目标缓冲区
+</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=kt>uint64_t</span> <span class=n>copy_start</span> <span class=o>=</span> <span class=p>(</span><span class=n>chunk_pos</span> <span class=o>&lt;</span> <span class=n>pos</span><span class=p>)</span> <span class=o>?</span> <span class=p>(</span><span class=n>pos</span> <span class=o>-</span> <span class=n>chunk_pos</span><span class=p>)</span> <span class=o>:</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=kt>uint64_t</span> <span class=n>copy_len</span> <span class=o>=</span> <span class=p>(</span><span class=n>chunk_len</span> <span class=o>-</span> <span class=n>copy_start</span> <span class=o>&gt;</span> <span class=n>len</span> <span class=o>-</span> <span class=n>bytes_read</span><span class=p>)</span> <span class=o>?</span> <span class=p>(</span><span class=n>len</span> <span class=o>-</span> <span class=n>bytes_read</span><span class=p>)</span> <span class=o>:</span> <span class=p>(</span><span class=n>chunk_len</span> <span class=o>-</span> <span class=n>copy_start</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=nf>memcpy</span><span class=p>((</span><span class=kt>char</span> <span class=o>*</span><span class=p>)</span><span class=n>buf</span> <span class=o>+</span> <span class=n>bytes_read</span><span class=p>,</span> <span class=p>(</span><span class=kt>char</span> <span class=o>*</span><span class=p>)</span><span class=n>aligned_buf</span> <span class=o>+</span> <span class=n>copy_start</span><span class=p>,</span> <span class=n>copy_len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>bytes_read</span> <span class=o>+=</span> <span class=n>copy_len</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nf>free</span><span class=p>(</span><span class=n>aligned_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>bytes_read</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// 实现 write 接口
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>write</span><span class=p>(</span><span class=kt>int</span> <span class=n>fd</span><span class=p>,</span> <span class=kt>void</span> <span class=o>*</span><span class=n>buf</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>pos</span><span class=p>,</span> <span class=kt>uint64_t</span> <span class=n>len</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>&amp;</span> <span class=o>~</span><span class=p>(</span><span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>end_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>len</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_end_pos</span> <span class=o>=</span> <span class=p>(</span><span class=n>end_pos</span> <span class=o>+</span> <span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>&amp;</span> <span class=o>~</span><span class=p>(</span><span class=n>ALIGN_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>aligned_len</span> <span class=o>=</span> <span class=n>aligned_end_pos</span> <span class=o>-</span> <span class=n>aligned_pos</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>void</span> <span class=o>*</span><span class=n>aligned_buf</span> <span class=o>=</span> <span class=nf>aligned_alloc</span><span class=p>(</span><span class=n>ALIGN_SIZE</span><span class=p>,</span> <span class=n>ALIGN_SIZE</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>aligned_buf</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;aligned_alloc&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=o>-</span><span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kt>uint64_t</span> <span class=n>bytes_written</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=p>(</span><span class=n>bytes_written</span> <span class=o>&lt;</span> <span class=n>len</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>uint64_t</span> <span class=n>chunk_pos</span> <span class=o>=</span> <span class=n>aligned_pos</span> <span class=o>+</span> <span class=n>bytes_written</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=kt>uint64_t</span> <span class=n>chunk_len</span> <span class=o>=</span> <span class=n>ALIGN_SIZE</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>chunk_pos</span> <span class=o>+</span> <span class=n>chunk_len</span> <span class=o>&gt;</span> <span class=n>end_pos</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=n>chunk_len</span> <span class=o>=</span> <span class=n>end_pos</span> <span class=o>-</span> <span class=n>chunk_pos</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1>// 读取对齐的范围
+</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=kt>int</span> <span class=n>ret</span> <span class=o>=</span> <span class=nf>aligned_read</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>aligned_buf</span><span class=p>,</span> <span class=n>chunk_pos</span><span class=p>,</span> <span class=n>chunk_len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>ret</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=nf>free</span><span class=p>(</span><span class=n>aligned_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>ret</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1>// 复制新的数据到对齐缓冲区
+</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=kt>uint64_t</span> <span class=n>copy_start</span> <span class=o>=</span> <span class=p>(</span><span class=n>chunk_pos</span> <span class=o>&lt;</span> <span class=n>pos</span><span class=p>)</span> <span class=o>?</span> <span class=p>(</span><span class=n>pos</span> <span class=o>-</span> <span class=n>chunk_pos</span><span class=p>)</span> <span class=o>:</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=kt>uint64_t</span> <span class=n>copy_len</span> <span class=o>=</span> <span class=p>(</span><span class=n>chunk_len</span> <span class=o>-</span> <span class=n>copy_start</span> <span class=o>&gt;</span> <span class=n>len</span> <span class=o>-</span> <span class=n>bytes_written</span><span class=p>)</span> <span class=o>?</span> <span class=p>(</span><span class=n>len</span> <span class=o>-</span> <span class=n>bytes_written</span><span class=p>)</span> <span class=o>:</span> <span class=p>(</span><span class=n>chunk_len</span> <span class=o>-</span> <span class=n>copy_start</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=nf>memcpy</span><span class=p>((</span><span class=kt>char</span> <span class=o>*</span><span class=p>)</span><span class=n>aligned_buf</span> <span class=o>+</span> <span class=n>copy_start</span><span class=p>,</span> <span class=p>(</span><span class=kt>char</span> <span class=o>*</span><span class=p>)</span><span class=n>buf</span> <span class=o>+</span> <span class=n>bytes_written</span><span class=p>,</span> <span class=n>copy_len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1>// 写入对齐的范围
+</span></span></span><span class=line><span class=cl><span class=c1></span>        <span class=n>ret</span> <span class=o>=</span> <span class=nf>aligned_write</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>aligned_buf</span><span class=p>,</span> <span class=n>chunk_pos</span><span class=p>,</span> <span class=n>chunk_len</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>ret</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=nf>free</span><span class=p>(</span><span class=n>aligned_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>ret</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>bytes_written</span> <span class=o>+=</span> <span class=n>copy_len</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nf>free</span><span class=p>(</span><span class=n>aligned_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>bytes_written</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// 测试函数
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=nf>main</span><span class=p>()</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=c1>// 示例文件操作
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=kt>int</span> <span class=n>fd</span> <span class=o>=</span> <span class=nf>open</span><span class=p>(</span><span class=s>&#34;testfile.txt&#34;</span><span class=p>,</span> <span class=n>O_RDWR</span> <span class=o>|</span> <span class=n>O_CREAT</span><span class=p>,</span> <span class=mo>0644</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=n>fd</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;open&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kt>char</span> <span class=n>write_buf</span><span class=p>[]</span> <span class=o>=</span> <span class=s>&#34;Hello, this is a test for aligned write and read.&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>char</span> <span class=n>read_buf</span><span class=p>[</span><span class=k>sizeof</span><span class=p>(</span><span class=n>write_buf</span><span class=p>)];</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1>// 写入数据
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=k>if</span> <span class=p>(</span><span class=nf>write</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>write_buf</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=k>sizeof</span><span class=p>(</span><span class=n>write_buf</span><span class=p>))</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;write&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=nf>close</span><span class=p>(</span><span class=n>fd</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1>// 读取数据
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=k>if</span> <span class=p>(</span><span class=nf>read</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span> <span class=n>read_buf</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=k>sizeof</span><span class=p>(</span><span class=n>read_buf</span><span class=p>))</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nf>perror</span><span class=p>(</span><span class=s>&#34;read&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=nf>close</span><span class=p>(</span><span class=n>fd</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nf>printf</span><span class=p>(</span><span class=s>&#34;读取的数据: %s</span><span class=se>\n</span><span class=s>&#34;</span><span class=p>,</span> <span class=n>read_buf</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nf>close</span><span class=p>(</span><span class=n>fd</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=详细注释-1>详细注释</h3><ol><li>aligned_read 和 aligned_write 模拟:</li></ol><ul><li>这两个函数模拟了对齐的读取和写入操作，实际实现中可能需要根据具体需求进行调整。</li></ul><ol start=2><li>read 接口:</li></ol><ul><li>对齐计算:</li><li>计算对齐的起始位置 <code>aligned_pos</code> 和结束位置 <code>aligned_end_pos</code>。</li><li>分配对齐缓冲区:</li><li>使用 <code>aligned_alloc</code> 分配对齐的缓冲区，每次只分配 4KB。</li><li>分块读取:</li><li>使用 while 循环分块读取数据，每次读取 4KB。</li><li>调用 <code>aligned_read</code> 读取对齐范围的数据。</li><li>复制所需的数据到目标缓冲区。</li><li>释放缓冲区:</li><li>释放分配的对齐缓冲区。</li></ul><ol start=3><li>write 接口:</li></ol><ul><li>对齐计算:</li><li>计算对齐的起始位置 <code>aligned_pos</code> 和结束位置 <code>aligned_end_pos</code>。</li><li>分配对齐缓冲区:</li><li>使用 <code>aligned_alloc</code> 分配对齐的缓冲区，每次只分配 4KB。</li><li>分块写入:</li><li>使用 while 循环分块写入数据，每次写入 4KB。</li><li>调用 <code>aligned_read</code> 读取对齐范围的数据。</li><li>将新的数据复制到对齐缓冲区的相应位置。</li><li>调用 <code>aligned_write</code> 写入对齐范围的数据。</li><li>释放缓冲区:</li><li>释放分配的对齐缓冲区。</li></ul><p>通过这些优化，我们可以在内存有限的情况下高效地进行读取和写入操作。分块处理减少了内存消耗，避免了频繁的内存分配和释放操作，从而提高了性能。</p></section><footer class=article-footer><section class=article-tags><a href=/tags/c/c++/>C/C++</a></section><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section><section class=article-lastmod><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<span>Last updated on Feb 26, 2025 00:00 UTC</span></section></footer></article><script src=https://utteranc.es/client.js repo=realcedriccheng/utterances issue-term=pathname label=✨💬✨ crossorigin=anonymous async></script><style>.utterances{max-width:unset}</style><script>let utterancesLoaded=!1;function setUtterancesTheme(e){let t=document.querySelector(".utterances iframe");t&&t.contentWindow.postMessage({type:"set-theme",theme:`github-${e}`},"https://utteranc.es")}addEventListener("message",e=>{if(e.origin!=="https://utteranc.es")return;utterancesLoaded=!0,setUtterancesTheme(document.documentElement.dataset.scheme)}),window.addEventListener("onColorSchemeChange",e=>{if(!utterancesLoaded)return;setUtterancesTheme(e.detail)})</script><footer class=site-footer><section class=copyright>&copy;
+2024 -
+2025 The Orange Flavored Whisper</section><section class=powerby>Built with <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a><br>Theme <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> designed by <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a></section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script></body></html>
