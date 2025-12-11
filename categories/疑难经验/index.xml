@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>疑难经验 on The Orange Flavored Whisper</title><link>https://realcedriccheng.github.io/categories/%E7%96%91%E9%9A%BE%E7%BB%8F%E9%AA%8C/</link><description>Recent content in 疑难经验 on The Orange Flavored Whisper</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Thu, 13 Feb 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://realcedriccheng.github.io/categories/%E7%96%91%E9%9A%BE%E7%BB%8F%E9%AA%8C/index.xml" rel="self" type="application/rss+xml"/><item><title>以力扣49为例 - 自定义哈希函数</title><link>https://realcedriccheng.github.io/p/self_define_hash/</link><pubDate>Thu, 13 Feb 2025 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/self_define_hash/</guid><description>&lt;p&gt;题目链接： &lt;a class="link" href="https://leetcode.cn/problems/group-anagrams/solutions/520469/zi-mu-yi-wei-ci-fen-zu-by-leetcode-solut-gyoc/" target="_blank" rel="noopener"
+&gt;https://leetcode.cn/problems/group-anagrams/solutions/520469/zi-mu-yi-wei-ci-fen-zu-by-leetcode-solut-gyoc/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;题解中定义了&lt;code&gt;array&amp;lt;int, 26&amp;gt;&lt;/code&gt;到 &lt;code&gt;vector&amp;lt;string&amp;gt;&lt;/code&gt;的映射，其中前者为一个大小为26的int数组。C++中，除了vector这种变长数组，还提供了固定大小数组的std::array这个容器类模板。用意是更好的类型检查和防止越界错误，还可以使用标准库的很多算法函数。性能和原生数组相同。使用前需要&lt;code&gt;#include &amp;lt;array&amp;gt;&lt;/code&gt;。&lt;/p&gt;
+&lt;p&gt;之所以要定义这个映射，是因为互为字母异位词的两个字符串，他们每个字母出现的频率是相同的。所以用&lt;code&gt;array&amp;lt;int, 26&amp;gt;&lt;/code&gt;作为key，将字母异位词分组。而key相同的字符串需要插入映射的&lt;code&gt;vector&amp;lt;string&amp;gt;&lt;/code&gt;中。&lt;/p&gt;
+&lt;p&gt;unordered_map和unordered_set等基于哈希表的容器默认只能处理内置类型（如整数、指针）和一些标准库类型（string等）。对于自定义类型或复杂类型，如&lt;code&gt;array&amp;lt;int, 26&amp;gt;&lt;/code&gt;，需要提供一个合适的哈希函数才能作为key。&lt;/p&gt;
+&lt;p&gt;哈希函数的目的是区分不同的key。合适的哈希函数需要将相同的key映射到相同的slot，而哈希碰撞的概率很小。在实现哈希函数时，注意：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;函数返回值为size_t类型，这是因为unordered_map是基于哈希表的数据结构，索引是基于哈希值的，而哈希值就是一个无符号整数。不用int是为了避免符号扩展的问题。具体需要参考unordered_map的实现。&lt;/li&gt;
+&lt;li&gt;一般的设计方法有
+&lt;ul&gt;
+&lt;li&gt;利用&lt;code&gt;std::hash&amp;lt;int&amp;gt;&lt;/code&gt;函数，需要&lt;code&gt;#include &amp;lt;functional&amp;gt;&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;位运算&lt;/strong&gt;：如位移、异或等操作可以帮助混合不同的比特位。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;乘法和加法&lt;/strong&gt;：通过乘以素数并加上其他数值，可以使结果更加随机化。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;组合多个哈希值&lt;/strong&gt;：如果输入数据由多个字段组成，可以分别对每个字段进行哈希计算，然后将这些哈希值组合起来。
+总之，自定义哈希函数就是要保证输入相同的key时，返回值相同；输入不同的key时，返回值尽量不同。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;本题中，key是一个整数数组。因此可以组合数组中每一位整数的哈希值。&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;span class="lnt"&gt;7
+&lt;/span&gt;&lt;span class="lnt"&gt;8
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-gdscript3" data-lang="gdscript3"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;my_hash&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="p"&gt;::&lt;/span&gt;&lt;span class="n"&gt;array&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="ne"&gt;int&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;26&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;k&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="ne"&gt;int&lt;/span&gt; &lt;span class="n"&gt;n&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;res&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;n&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;k&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nb"&gt;hash&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;hash&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="p"&gt;::&lt;/span&gt;&lt;span class="nb"&gt;hash&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="ne"&gt;int&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;{}(&lt;/span&gt;&lt;span class="n"&gt;n&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;hash&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;至于哈希函数&lt;code&gt;std::hash&amp;lt;int&amp;gt;{}()&lt;/code&gt;中为什么有{}，这是因为std::hash是一个类模板，()是他定义的函数运算操作符。&lt;code&gt;std::hash&amp;lt;int&amp;gt;{}&lt;/code&gt;的意思是临时创建一个&lt;code&gt;std::hash&amp;lt;int&amp;gt;&lt;/code&gt;类型的匿名临时对象，{}是参数列表（不需要参数）。这个对象后面再用()，就是调用了该临时对象定义的操作符。&lt;/p&gt;
+&lt;p&gt;使用左移和异或就是想要哈希函数映射得更均匀，尽量保留每一位的特征。&lt;/p&gt;
+&lt;p&gt;题解使用了嵌套的Lambda表达式，太复杂。还可以使用函数对象（仿函数）实现。函数对象是一个具有operator()的类实例。不仅可以像函数一样调用，还可以保存状态。此处不介绍。&lt;/p&gt;</description></item><item><title>什么是trim命令</title><link>https://realcedriccheng.github.io/p/what_is_trim_command/</link><pubDate>Sun, 08 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/what_is_trim_command/</guid><description>&lt;p&gt;操作系统通过trim命令通知SSD哪些块不再使用，可以擦除或回收。&lt;/p&gt;
+&lt;p&gt;文件系统在删除文件时，仅将数据块标记为未使用。因此文件所在的位置只有下一次写入时才会被覆盖。但是对于SSD，数据页在重写之前必须擦除其所在块。因此存在垃圾回收和写放大。&lt;/p&gt;
+&lt;p&gt;trim命令使得SSD知道哪些数据页是无效的，在做垃圾回收时不搬移这些页。&lt;/p&gt;
+&lt;p&gt;因此，在SSD做过垃圾回收之后几乎不可能恢复数据。但是HDD中被删除的数据仍有可能恢复。&lt;/p&gt;</description></item><item><title>linux中查看内核信息总是报fd0错</title><link>https://realcedriccheng.github.io/p/fd0/</link><pubDate>Sat, 07 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/fd0/</guid><description>&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/fd0/1.png"
+width="1160"
+height="66"
+srcset="https://realcedriccheng.github.io/p/fd0/1_hu_22616f040a65aade.png 480w, https://realcedriccheng.github.io/p/fd0/1_hu_ce547a2e4c6ed346.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="1757"
+data-flex-basis="4218px"
+&gt;&lt;/p&gt;
+&lt;p&gt;开机以后查看内核信息，总是报fd0相关的错误。这是因为系统启动的时候加载了软盘驱动，但是没有软盘。所以fd0是用不了的。可以忽略这些信息，也可以禁用软盘。&lt;/p&gt;</description></item><item><title>配置riscv64-unknown-elf-gdb环境</title><link>https://realcedriccheng.github.io/p/riscv64-unknown-elf-gdb/</link><pubDate>Sat, 07 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/riscv64-unknown-elf-gdb/</guid><description>&lt;p&gt;由于实验用到的汇编代码是riscv的，不能直接用gdb调试，而要用riscv64-unknown-elf-gdb。这个版本的gdb属于riscv工具链。&lt;/p&gt;
+&lt;p&gt;要安装riscv工具链，可以下载源代码自己编译，也可以下载预编译的二进制文件。这里我从&lt;a class="link" href="https://mirror.iscas.ac.cn/riscv-toolchains/release/riscv-collab/riscv-gnu-toolchain/LatestRelease/" target="_blank" rel="noopener"
+&gt;ttps://mirror.iscas.ac.cn/riscv-toolchains/release/riscv-collab/riscv-gnu-toolchain/LatestRelease/&lt;/a&gt;或者&lt;a class="link" href="https://github.com/riscv-collab/riscv-gnu-toolchain/releases" target="_blank" rel="noopener"
+&gt;https://github.com/riscv-collab/riscv-gnu-toolchain/releases&lt;/a&gt;选择适合的版本下载，我下载的是riscv64-elf-ubuntu-18.04-nightly-2022.11.12-nightly.tar.gz。&lt;/p&gt;
+&lt;p&gt;在ubuntu中解压后，将riscv目录复制到要安装的地点，再将安装目录下的riscv/bin添加到环境变量。查看版本证明安装成功。&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-fallback" data-lang="fallback"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;riscv64-unknown-elf-gdb --version
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;注意：&lt;/p&gt;
+&lt;p&gt;从&lt;a class="link" href="https://static.dev.sifive.com/dev-tools/freedom-tools/v2020.08/riscv64-unknown-elf-gcc-10.1.0-2020.08.2-x86_64-linux-ubuntu14.tar.gz" target="_blank" rel="noopener"
+&gt;https://static.dev.sifive.com/dev-tools/freedom-tools/v2020.08/riscv64-unknown-elf-gcc-10.1.0-2020.08.2-x86_64-linux-ubuntu14.tar.gz&lt;/a&gt;下载的预编译工具不好，没有TUI界面。&lt;/p&gt;
+&lt;p&gt;要把riscv/bin目录添加到环境变量，而不是riscv&lt;/p&gt;
+&lt;p&gt;其实解压出来也就是安装了，只是要把用到的二进制文件添加到PATH以便使用&lt;/p&gt;</description></item></channel></rss>

@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>硬件 on The Orange Flavored Whisper</title><link>https://realcedriccheng.github.io/tags/%E7%A1%AC%E4%BB%B6/</link><description>Recent content in 硬件 on The Orange Flavored Whisper</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 08 Dec 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://realcedriccheng.github.io/tags/%E7%A1%AC%E4%BB%B6/index.xml" rel="self" type="application/rss+xml"/><item><title>SSD简介</title><link>https://realcedriccheng.github.io/p/brief_on_ssd/</link><pubDate>Sun, 08 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/brief_on_ssd/</guid><description>&lt;h2 id="什么是ssd"&gt;什么是SSD
+&lt;/h2&gt;&lt;p&gt;固态硬盘（Solid State Drive, SSD）是一种基于闪存芯片的存储设备。为了增加IO并发性、提高带宽，每个通道（Channel）连接了多个闪存芯片（Die）。每个die包含了多个擦除块（Erase Block），每个block上包含了多个页（Page）。每个page上包含两个区域：（1）数据区域，用于存储用户数据；（2）元数据区域，用于存储纠错码（Error-Correcting Code, ECC）等其它信息。&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/brief_on_ssd/beb90c9be298e006b856945cd99ec439_MD5.jpeg"
+width="774"
+height="210"
+srcset="https://realcedriccheng.github.io/p/brief_on_ssd/beb90c9be298e006b856945cd99ec439_MD5_hu_eb91ba7e7231419f.jpeg 480w, https://realcedriccheng.github.io/p/brief_on_ssd/beb90c9be298e006b856945cd99ec439_MD5_hu_8810db737198e323.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="368"
+data-flex-basis="884px"
+&gt;&lt;/p&gt;
+&lt;p&gt;SSD的性能更优、功耗更低，因此已被广泛整合应用于个人计算机、移动终端设备、数据中心以及云存储之中，逐渐取代传统的HDD设备。与传统的机械硬盘（Hard Disk Drive, HDD）相比较，SSD延迟更低、带宽更高。SSD没有机械运动部件，使其抗震动性能优越、能源消耗更低且没有运行噪声，并显著减少了体积和重量。&lt;/p&gt;
+&lt;h2 id="什么是全闪存储"&gt;什么是全闪存储
+&lt;/h2&gt;&lt;p&gt;全闪存储是指存储阵列全部由固态存储介质构成，行业普遍认为全闪存储是存储行业的发展趋势。华为的全闪存储产品OceanStor Dorado相较于传统机械存储，在SPC-1基准测试下业务性能提升了5倍、在数据库场景下业务性能提升了10倍、在虚拟桌面场景下应用启动相应时间缩短了80%。充分体现了全闪存储产品优异的性能。&lt;/p&gt;
+&lt;p&gt;然而，目前全闪存储还未成为存储领域应用主流，SSD还未完全取代HDD。其中两个重要原因在于（1）SSD与HDD相比，成本较高、容量较小；（2）块接口不适合闪存的特性。&lt;/p&gt;
+&lt;p&gt;（1）SSD比HDD的容量更小、成本更高&lt;/p&gt;
+&lt;p&gt;SSD系列产品容量普遍小于HDD系列产品，而SSD的平均每GB单价是HDD的11倍。成本和容量问题是制约SSD取代HDD的一个重要因素。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;容量&lt;/th&gt;
+&lt;th&gt;整盘价格（美元）&lt;/th&gt;
+&lt;th&gt;每GB单价（美元）&lt;/th&gt;
+&lt;th&gt;平均每GB单价（美元）&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;西部数据&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Gold系列HDD&lt;/td&gt;
+&lt;td&gt;1TB&lt;/td&gt;
+&lt;td&gt;84.36&lt;/td&gt;
+&lt;td&gt;0.082&lt;/td&gt;
+&lt;td&gt;0.032&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;4TB&lt;/td&gt;
+&lt;td&gt;159.99&lt;/td&gt;
+&lt;td&gt;0.039&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;6TB&lt;/td&gt;
+&lt;td&gt;194.99&lt;/td&gt;
+&lt;td&gt;0.032&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;8TB&lt;/td&gt;
+&lt;td&gt;229.99&lt;/td&gt;
+&lt;td&gt;0.028&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;10TB&lt;/td&gt;
+&lt;td&gt;269.99&lt;/td&gt;
+&lt;td&gt;0.026&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;12TB&lt;/td&gt;
+&lt;td&gt;314.99&lt;/td&gt;
+&lt;td&gt;0.026&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;14TB&lt;/td&gt;
+&lt;td&gt;355.8&lt;/td&gt;
+&lt;td&gt;0.025&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;16TB&lt;/td&gt;
+&lt;td&gt;349.99&lt;/td&gt;
+&lt;td&gt;0.021&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;18TB&lt;/td&gt;
+&lt;td&gt;379.99&lt;/td&gt;
+&lt;td&gt;0.021&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;22TB&lt;/td&gt;
+&lt;td&gt;459.99&lt;/td&gt;
+&lt;td&gt;0.020&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;西部数据&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Gold系列SSD&lt;/td&gt;
+&lt;td&gt;960GB&lt;/td&gt;
+&lt;td&gt;499.99&lt;/td&gt;
+&lt;td&gt;0.521&lt;/td&gt;
+&lt;td&gt;0.356&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;1.92TB&lt;/td&gt;
+&lt;td&gt;699.99&lt;/td&gt;
+&lt;td&gt;0.356&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;3.84TB&lt;/td&gt;
+&lt;td&gt;899.99&lt;/td&gt;
+&lt;td&gt;0.229&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;7.68TB&lt;/td&gt;
+&lt;td&gt;2499&lt;/td&gt;
+&lt;td&gt;0.318&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;（2）块接口不适合闪存特性&lt;/p&gt;
+&lt;p&gt;SSD的闪存芯片支持读取、写入和擦除3种操作。读写操作的粒度是页，而擦除操作的粒度是块。闪存具有不允许就地更新和芯片寿命有限的特性，即每个块在更新其中页时必须先全部擦除、每个闪存单元具有有限的读写循环（Program/Erase, P/E）次数。&lt;/p&gt;
+&lt;p&gt;SSD为了兼容HDD时代的各种硬件，采用传统的块接口（Block Interface）抽象下层物理设备。块接口要求SSD提供一段连续的逻辑空间，并允许按照任意顺序读取、写入和就地更新数据。而一个擦除块内各个页面的生命周期不同，页会先后失效。为了重新利用擦除块内失效页的空间，SSD需要实现垃圾回收（Garbage Collection, GC）将块内有效数据迁移出去。从而需要在盘内预留过度配置（Over Privisioning, OP）空间以承接有效数据、降低垃圾回收操作带来的性能影响。垃圾回收操作还会导致吞吐量下降、写放大、尾延迟高、闪存寿命下降等一系列问题。&lt;/p&gt;
+&lt;p&gt;SSD由于先擦后写、擦写粒度不一致的特性存在垃圾回收等数据迁移开销，造成了写放大和空间浪费，写放大还会损耗SSD的寿命。而HDD可以在盘内任意位置擦写，不存在垃圾回收和有效数据迁移。因此，解决块接口和闪存特性不匹配是SSD取代HDD过程中的一个重要问题。&lt;/p&gt;</description></item><item><title>什么是内存</title><link>https://realcedriccheng.github.io/p/what_is_memory/</link><pubDate>Sun, 08 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/what_is_memory/</guid><description>&lt;h2 id="什么是内存"&gt;什么是内存
+&lt;/h2&gt;&lt;p&gt;内存是与CPU直接交换数据的内部存储器。内存中存放的是计算机运行时必须的数据，包括操作系统、进程等。任何数据在被CPU操作之前，必须先读入内存。&lt;/p&gt;
+&lt;p&gt;内存属于计算机系统内部，而外存属于计算机系统的外设。内存可以看作是外存的cache。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一种比喻是：如果您有一张书桌和一个文件柜，书桌代表电脑的内存。您需要马上使用的材料留在书桌上，以便轻松找到。当您离开办公室时，留在桌上的任何文件都会被扔掉。文件柜中的任何东西都会保留下来。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;内存通常由随机访问存储器（Random Access Memory, RAM）构成。因此内存和RAM有时是混用的。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RAM分为动态RAM（DRAM）和静态RAM（SRAM），内存由DRAM构成。
+&lt;ul&gt;
+&lt;li&gt;SRAM比DRAM更快、功耗更低。但是容量更小、价格更高、设计更复杂，通常用于CPU内部的高速缓存。详见：（本站）存储的层次结构（Memory Hierarchy） 、&lt;a class="link" href="https://www.amazonaws.cn/knowledge/what-is-memory/" target="_blank" rel="noopener"
+&gt;https://www.amazonaws.cn/knowledge/what-is-memory/&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;下图的黑色部分是存储器模块，通过存储控制器管理。存储器模块中有 DRAM 芯片。&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/what_is_memory/31a17a35b0d7da91e0b530f67109dc52_MD5.jpeg"
+width="450"
+height="300"
+srcset="https://realcedriccheng.github.io/p/what_is_memory/31a17a35b0d7da91e0b530f67109dc52_MD5_hu_79e1a856ab6535a4.jpeg 480w, https://realcedriccheng.github.io/p/what_is_memory/31a17a35b0d7da91e0b530f67109dc52_MD5_hu_fe71e343f4f6d0dc.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="150"
+data-flex-basis="360px"
+&gt;&lt;/p&gt;
+&lt;h2 id="内存的作用"&gt;内存的作用
+&lt;/h2&gt;&lt;p&gt;内存的数据是临时的、易失的，而外存的数据是持久存储的。电脑关机时，内存是空的，所有的数据都保存在外存上。&lt;/p&gt;
+&lt;p&gt;电脑启动时，BIOS先自检，然后通过引导加载程序将操作系统加载进内存，这样才能通过操作系统使用计算机。&lt;/p&gt;
+&lt;p&gt;操作系统想要执行程序，必须将程序的代码读入内存，并在内存上分配程序必须的地址空间。此外，进程想要使用任何文件，都必须先将其内容读入内存。&lt;/p&gt;
+&lt;p&gt;CPU只能通过内存访问数据，因此内存容量与程序运行速度、并发处理任务的效率很有关系。&lt;/p&gt;
+&lt;h2 id="什么是ddrlpddr"&gt;什么是DDR、LPDDR？
+&lt;/h2&gt;&lt;p&gt;经常看到DDR4、DDR5等表述，这些表述是什么意思？&lt;/p&gt;
+&lt;h3 id="ddr"&gt;DDR
+&lt;/h3&gt;&lt;p&gt;双倍数据率同步动态随机存储器（Double Data Rate Synchronous Dynamic Random Access Memory, DDR SDRAM）。DDR是DDR SDRAM的简称。&lt;/p&gt;
+&lt;p&gt;其中&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;SDRAM代表同步动态随机存取存储器，SDRAM是在DRAM的基础上增加同步和双区域的功能，使得CPU能与SDRAM的时钟同步，因此SDRAM比DRAM访问更快。&lt;/li&gt;
+&lt;li&gt;DDR代表双倍数据传输率。一个时钟周期内，SDRAM只在上升沿传输一次数据，而DDR则在上升沿和下降沿各传输一次数据。所以数据传输速度是CPU主频的两倍。因此DDR SDRAM比SDRAM更快。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;参考：&lt;a class="link" href="https://zh.wikipedia.org/wiki/DDR_SDRAM" target="_blank" rel="noopener"
+&gt;https://zh.wikipedia.org/wiki/DDR_SDRAM&lt;/a&gt;、&lt;a class="link" href="https://zh.wikipedia.org/wiki/SDRAM" target="_blank" rel="noopener"
+&gt;https://zh.wikipedia.org/wiki/SDRAM&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;DDR5是最新的第5代DDR，在2021年推出。与DDR4相比，DDR5具有以下优势。&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/what_is_memory/ae6f5b1a9bfbb47a7c84f1fe07a3bdbf_MD5.jpeg"
+width="748"
+height="301"
+srcset="https://realcedriccheng.github.io/p/what_is_memory/ae6f5b1a9bfbb47a7c84f1fe07a3bdbf_MD5_hu_c8fce6d8d82aea56.jpeg 480w, https://realcedriccheng.github.io/p/what_is_memory/ae6f5b1a9bfbb47a7c84f1fe07a3bdbf_MD5_hu_7bafc82ff9685d21.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="248"
+data-flex-basis="596px"
+&gt;&lt;/p&gt;
+&lt;p&gt;参考：&lt;a class="link" href="https://www.rambus.com/blogs/ddr5-%E4%B8%8E-ddr4-%E6%89%80%E6%9C%89%E8%AE%BE%E8%AE%A1%E6%8C%91%E6%88%98%E4%B8%8E%E4%BC%98%E5%8A%BF/?lang=zh-hans" target="_blank" rel="noopener"
+&gt;https://www.rambus.com/blogs/ddr5-%E4%B8%8E-ddr4-%E6%89%80%E6%9C%89%E8%AE%BE%E8%AE%A1%E6%8C%91%E6%88%98%E4%B8%8E%E4%BC%98%E5%8A%BF/?lang=zh-hans&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;此外，DRAM和各代DDR SDRAM的数据如下。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;DRAM&lt;/th&gt;
+&lt;th&gt;DDR&lt;/th&gt;
+&lt;th&gt;DDR2&lt;/th&gt;
+&lt;th&gt;DDR3&lt;/th&gt;
+&lt;th&gt;DDR4&lt;/th&gt;
+&lt;th&gt;DDR5&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;預取&lt;/td&gt;
+&lt;td&gt;1 - 位元&lt;/td&gt;
+&lt;td&gt;2 - 位元&lt;/td&gt;
+&lt;td&gt;4 - 位元&lt;/td&gt;
+&lt;td&gt;8 - 位元&lt;/td&gt;
+&lt;td&gt;每記憶庫位元&lt;/td&gt;
+&lt;td&gt;16 - 位元&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;資料速率 (MT/s)&lt;/td&gt;
+&lt;td&gt;100 - 166&lt;/td&gt;
+&lt;td&gt;266 - 400&lt;/td&gt;
+&lt;td&gt;533 - 800&lt;/td&gt;
+&lt;td&gt;1066 - 1600&lt;/td&gt;
+&lt;td&gt;2133 - 5100&lt;/td&gt;
+&lt;td&gt;3200 - 6400&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;傳輸速率 (GB/s)&lt;/td&gt;
+&lt;td&gt;0.8 - 1.3&lt;/td&gt;
+&lt;td&gt;2.1 - 3.2&lt;/td&gt;
+&lt;td&gt;4.2 - 6.4&lt;/td&gt;
+&lt;td&gt;8.5 - 14.9&lt;/td&gt;
+&lt;td&gt;17 - 25.6&lt;/td&gt;
+&lt;td&gt;38.4 - 51.2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;電壓 (V)&lt;/td&gt;
+&lt;td&gt;3.3&lt;/td&gt;
+&lt;td&gt;2.5 - 2.6&lt;/td&gt;
+&lt;td&gt;1.8&lt;/td&gt;
+&lt;td&gt;1.35 - 1.5&lt;/td&gt;
+&lt;td&gt;1.2&lt;/td&gt;
+&lt;td&gt;1.1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;a class="link" href="https://www.crucial.tw/articles/about-memory/difference-among-ddr2-ddr3-ddr4-and-ddr5-memory" target="_blank" rel="noopener"
+&gt;https://www.crucial.tw/articles/about-memory/difference-among-ddr2-ddr3-ddr4-and-ddr5-memory&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/what_is_memory/56903f46d67a878ca5bd5eb4a733503c_MD5.jpeg"
+width="500"
+height="428"
+srcset="https://realcedriccheng.github.io/p/what_is_memory/56903f46d67a878ca5bd5eb4a733503c_MD5_hu_e24b1d7e898446bb.jpeg 480w, https://realcedriccheng.github.io/p/what_is_memory/56903f46d67a878ca5bd5eb4a733503c_MD5_hu_d8c5e2a33d28866b.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="116"
+data-flex-basis="280px"
+&gt;&lt;/p&gt;
+&lt;p&gt;注意：一般一种主板只支持一种类型的内存。因为各代DDR之间的物理结构（插槽不一样）、电气规范、工作电压、时钟速度和通信协议上都有差异。不同代内存不能混用。&lt;/p&gt;
+&lt;h3 id="lpddr"&gt;LPDDR
+&lt;/h3&gt;&lt;p&gt;LPDDR的全称是Low Power Double Data Rate SDRAM，也即移动DDR（Mobile DDR, MDDR或Low Power DDR, LPDDR）。&lt;/p&gt;
+&lt;p&gt;MDDR的运行电压（工作电压）低于DDR的标准电压，因此MDDR具有低功耗、高可靠性的特点。适合移动设备使用。&lt;/p&gt;
+&lt;p&gt;LPDDR5是2019年推出的，最新规范为LPDDR5X（2021）。&lt;/p&gt;
+&lt;p&gt;参考：&lt;a class="link" href="https://zh.wikipedia.org/wiki/%E7%A7%BB%E5%8A%A8DDR#LPDDR5" target="_blank" rel="noopener"
+&gt;https://zh.wikipedia.org/wiki/移动DDR#LPDDR5&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id="未列出的参考资料"&gt;未列出的参考资料
+&lt;/h2&gt;&lt;p&gt;&lt;a class="link" href="https://www.crucial.cn/articles/about-memory/what-does-ram-stand-for" target="_blank" rel="noopener"
+&gt;https://www.crucial.cn/articles/about-memory/what-does-ram-stand-for&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://www.kingston.com/cn/blog/pc-performance/difference-between-memory-storage" target="_blank" rel="noopener"
+&gt;https://www.kingston.com/cn/blog/pc-performance/difference-between-memory-storage&lt;/a&gt;&lt;/p&gt;</description></item><item><title>存储的层次结构</title><link>https://realcedriccheng.github.io/p/hierarchy_of_storage/</link><pubDate>Sun, 08 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/hierarchy_of_storage/</guid><description>&lt;h2 id="什么是存储的层次结构"&gt;什么是存储的层次结构
+&lt;/h2&gt;&lt;p&gt;计算机系统中的各级存储设备具有访问速度从快到慢、存储容量从小到大、存储单价由高到低的金字塔层次结构。&lt;/p&gt;
+&lt;p&gt;存储的层次结构基于缓存原理。缓存的意思是，一方面某个存储设备中存了大量的数据，而当前需要使用的只是其中的一小部分；另一方面通常访问速度越快的存储设备其容量就越小。因此，可以采用访问速度较快而容量较小的存储设备去存放当前需要使用的一小部分数据，从而加快数据的访问速度。&lt;/p&gt;
+&lt;p&gt;缓存之所以能够存放当前需要使用的一小部分数据，是因为局部性原理。局部性原理分为时间局部性和空间局部性。时间局部性是指当前访问过的数据，很可能马上又需要访问；空间局部性是指和当前访问数据相邻的数据，很可能马上需要访问。因此缓存中可以存放刚刚访问过的数据以及其邻近的数据。&lt;/p&gt;
+&lt;p&gt;根据存储的金字塔层级结构，可以认为每一级存储都可以看成是上一级存储的缓存。&lt;/p&gt;
+&lt;p&gt;在访问数据的时候，总是先查找数据是否存在于缓存中。如果存在则称为缓存命中，否则就从下一级存储中将数据读入缓存。下一级没有则去更下一级找，在本地直到查找到硬盘，如果可以访问远程存储还可以从远程读取数据。&lt;/p&gt;
+&lt;h2 id="存储的金字塔层次结构"&gt;存储的金字塔层次结构
+&lt;/h2&gt;&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/hierarchy_of_storage/16a610c79c34ffca053565d88ccdde58_MD5.jpeg"
+width="766"
+height="434"
+srcset="https://realcedriccheng.github.io/p/hierarchy_of_storage/16a610c79c34ffca053565d88ccdde58_MD5_hu_d3c4684cdc512d9c.jpeg 480w, https://realcedriccheng.github.io/p/hierarchy_of_storage/16a610c79c34ffca053565d88ccdde58_MD5_hu_2b86793a69a15cd6.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="176"
+data-flex-basis="423px"
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/hierarchy_of_storage/ce664ea8bcb7bc876c1c352711455d67_MD5.jpeg"
+width="776"
+height="446"
+srcset="https://realcedriccheng.github.io/p/hierarchy_of_storage/ce664ea8bcb7bc876c1c352711455d67_MD5_hu_a12871c3140beef3.jpeg 480w, https://realcedriccheng.github.io/p/hierarchy_of_storage/ce664ea8bcb7bc876c1c352711455d67_MD5_hu_63224d5e9fbdc772.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="173"
+data-flex-basis="417px"
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/hierarchy_of_storage/6c2d5b44fc178c23ac1b49f15c93485c_MD5.jpeg"
+width="1153"
+height="574"
+srcset="https://realcedriccheng.github.io/p/hierarchy_of_storage/6c2d5b44fc178c23ac1b49f15c93485c_MD5_hu_2525b7a7a9a1756a.jpeg 480w, https://realcedriccheng.github.io/p/hierarchy_of_storage/6c2d5b44fc178c23ac1b49f15c93485c_MD5_hu_6716f475263cf887.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="200"
+data-flex-basis="482px"
+&gt;&lt;/p&gt;
+&lt;h3 id="level-0寄存器"&gt;Level 0：寄存器
+&lt;/h3&gt;&lt;p&gt;寄存器（register）有32、64等不同位的。可以存储4B、8B的数据。一个CPU内的寄存器数量和CPU架构有关，少的有几十个，多的有几百个。&lt;/p&gt;
+&lt;p&gt;寄存器的访问速度是最快的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;一方面是因为寄存器在CPU内部，距离CPU更近。但是距离在单机不是一个主要因素。&lt;/p&gt;
+&lt;p&gt;以3GHz的CPU为例，电流每秒钟可以振荡30亿次，每次耗时大约为0.33纳秒。光在1纳秒的时间内，可以前进30厘米。也就是说，在CPU的一个时钟周期内，光可以前进10厘米。因此，如果内存距离CPU超过5厘米，就不可能在一个时钟周期内完成数据的读取，这还没有考虑硬件的限制和电流实际上达不到光速。相比之下，寄存器在CPU内部，当然读起来会快一点。&lt;/p&gt;
+&lt;p&gt;距离对于桌面电脑影响很大，对于手机影响就要小得多。手机CPU的时钟频率比较慢（iPhone 5s为1.3GHz），而且手机的内存紧挨着CPU。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;另一方面由于CPU直接存取寄存器，读写速度在一个时钟周期以内。设CPU主频为2GHz，则时钟周期为0.5ns。因此寄存器的访问延迟在1纳秒级。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="level-123高速缓存"&gt;Level 1、2、3：高速缓存
+&lt;/h3&gt;&lt;p&gt;CPU内部的高速缓存由SRAM组成，比内存使用的DRAM更快、功耗更低。但是容量更小、价格更高、设计更复杂。因此适合作为缓存。&lt;/p&gt;
+&lt;h4 id="l1-高速缓存"&gt;L1 高速缓存
+&lt;/h4&gt;&lt;p&gt;L1 高速缓存的访问速度几乎和寄存器一样快，通常只需要 2~4 个时钟周期，而大小在几十 KB 到几百 KB 不等。&lt;/p&gt;
+&lt;p&gt;每个 CPU 核心都有一块属于自己的 L1 高速缓存，指令和数据在 L1 是分开存放的，所以 L1 高速缓存通常分成指令缓存和数据缓存。&lt;/p&gt;
+&lt;p&gt;在 Linux 系统，我们可以通过这条命令，查看 CPU 里的 L1 Cache 「数据」缓存的容量大小：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-fallback" data-lang="fallback"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;$ cat /sys/devices/system/cpu/cpu0/cache/index0/size
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;32K
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;而查看 L1 Cache 「指令」缓存的容量大小，则是：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-fallback" data-lang="fallback"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;$ cat /sys/devices/system/cpu/cpu0/cache/index1/size
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;32K
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h4 id="l2-高速缓存"&gt;L2 高速缓存
+&lt;/h4&gt;&lt;p&gt;L2 高速缓存同样每个 CPU 核心都有，但是 L2 高速缓存位置比 L1 高速缓存距离 CPU 核心更远，它大小比 L1 高速缓存更大，CPU 型号不同大小也就不同，通常大小在几百 KB 到几 MB 不等，访问速度则更慢，速度在 10~20 个时钟周期。&lt;/p&gt;
+&lt;p&gt;在 Linux 系统，我们可以通过这条命令，查看 CPU 里的 L2 Cache 的容量大小：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-fallback" data-lang="fallback"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;$ cat /sys/devices/system/cpu/cpu0/cache/index2/size
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;256K
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h4 id="l3-高速缓存"&gt;L3 高速缓存
+&lt;/h4&gt;&lt;p&gt;L3 高速缓存通常是多个 CPU 核心共用的，位置比 L2 高速缓存距离 CPU 核心 更远，大小也会更大些，通常大小在几 MB 到几十 MB 不等，具体值根据 CPU 型号而定。访问速度相对也比较慢一些，访问速度在 20~60个时钟周期。&lt;/p&gt;
+&lt;p&gt;在 Linux 系统，我们可以通过这条命令，查看 CPU 里的 L3 Cache 的容量大小：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-fallback" data-lang="fallback"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;$ cat /sys/devices/system/cpu/cpu0/cache/index3/size
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;3072K
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id="level-4内存主存"&gt;Level 4：内存（主存）
+&lt;/h3&gt;&lt;p&gt;内存（memory、primary storage）是计算机运行过程中用到的主要存储空间。内存中存放着操作系统、进程运行所需的数据、代码等内容。&lt;/p&gt;
+&lt;p&gt;内存由DRAM组成，访问速度比硬盘（HDD、SSD等）要快很多，但是是易失性的，也即断电后数据就没有了。&lt;/p&gt;
+&lt;p&gt;DRAM 存储一个 bit 数据，只需要一个晶体管和一个电容就能存储，但是因为数据会被存储在电容里，电容会不断漏电，所以需要「定时刷新」电容，才能保证数据不会被丢失，这就是 DRAM 之所以被称为「动态」存储器的原因，只有不断刷新，数据才能被存储起来。&lt;/p&gt;
+&lt;p&gt;DRAM 的数据访问电路和刷新电路都比 SRAM 更复杂，所以访问的速度会更慢，内存速度大概在 200~300 个 时钟周期之间。属于百纳秒级别（0.1μs）。&lt;/p&gt;
+&lt;p&gt;CPU L1 Cache 随机访问延时是 1 纳秒，内存则是 100 纳秒，所以 CPU L1 Cache 比内存快 100 倍左右。&lt;/p&gt;
+&lt;p&gt;详见：（本站）什么是内存&lt;/p&gt;
+&lt;h3 id="level-5-外存辅存"&gt;Level 5 外存（辅存）
+&lt;/h3&gt;&lt;p&gt;外存是用于持久化保存数据的存储设备。外存的容量比内存更大，数据是非易失的。但外存的访问速度更慢。&lt;/p&gt;
+&lt;p&gt;目前主流的外存有机械硬盘（HDD）、固态硬盘（SSD）。&lt;/p&gt;
+&lt;p&gt;详见：（本站）SSD简介&lt;/p&gt;
+&lt;p&gt;SSD 比机械硬盘快 70 倍左右；内存比机械硬盘快 100000 倍左右；CPU L1 Cache 比机械硬盘快 10000000 倍左右。&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/hierarchy_of_storage/0ce2da76deae491b4ece03171c23d81d_MD5.jpeg"
+width="773"
+height="496"
+srcset="https://realcedriccheng.github.io/p/hierarchy_of_storage/0ce2da76deae491b4ece03171c23d81d_MD5_hu_27ed372558f85718.jpeg 480w, https://realcedriccheng.github.io/p/hierarchy_of_storage/0ce2da76deae491b4ece03171c23d81d_MD5_hu_fe3fd9b2702705d.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="155"
+data-flex-basis="374px"
+&gt;&lt;/p&gt;
+&lt;h3 id="level-6-远程存储"&gt;Level 6 远程存储
+&lt;/h3&gt;&lt;p&gt;此处略。&lt;/p&gt;
+&lt;h1 id="参考资料"&gt;参考资料
+&lt;/h1&gt;&lt;p&gt;&lt;a class="link" href="https://hansimov.gitbook.io/csapp/ch01-a-tour-of-computer-systems/1.6" target="_blank" rel="noopener"
+&gt;https://hansimov.gitbook.io/csapp/ch01-a-tour-of-computer-systems/1.6&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://blog.csdn.net/sinat_31608641/article/details/110684664" target="_blank" rel="noopener"
+&gt;https://blog.csdn.net/sinat_31608641/article/details/110684664&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://blog.csdn.net/qq_37442469/article/details/124180541" target="_blank" rel="noopener"
+&gt;https://blog.csdn.net/qq_37442469/article/details/124180541&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://www.geeksforgeeks.org/difference-between-sram-and-dram/" target="_blank" rel="noopener"
+&gt;https://www.geeksforgeeks.org/difference-between-sram-and-dram/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://en.wikipedia.org/wiki/Static_random-access_memory" target="_blank" rel="noopener"
+&gt;https://en.wikipedia.org/wiki/Static_random-access_memory&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://en.wikipedia.org/wiki/Cache_%28computing%29" target="_blank" rel="noopener"
+&gt;https://en.wikipedia.org/wiki/Cache_(computing)&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://en.wikipedia.org/wiki/Processor_register" target="_blank" rel="noopener"
+&gt;https://en.wikipedia.org/wiki/Processor_register&lt;/a&gt;&lt;/p&gt;</description></item></channel></rss>

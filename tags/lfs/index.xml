@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>LFS on The Orange Flavored Whisper</title><link>https://realcedriccheng.github.io/tags/lfs/</link><description>Recent content in LFS on The Orange Flavored Whisper</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 08 Dec 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://realcedriccheng.github.io/tags/lfs/index.xml" rel="self" type="application/rss+xml"/><item><title>F2FS的优点以及与LFS的区别</title><link>https://realcedriccheng.github.io/p/f2fs_lfs/</link><pubDate>Sun, 08 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/f2fs_lfs/</guid><description>&lt;h2 id="什么是lfs"&gt;什么是LFS
+&lt;/h2&gt;&lt;p&gt;LFS即日志结构文件系统（log-structured file system）。日志结构文件系统是一种只允许顺序写的文件系统。原始的LFS叫做Sprite(精灵) LFS，是 Sprite 网络操作系统的一部分。&lt;/p&gt;
+&lt;h2 id="为什么要将文件系统设计成日志结构的"&gt;为什么要将文件系统设计成日志结构的
+&lt;/h2&gt;&lt;p&gt;LFS的基本假设是IO 瓶颈在写不在读，因为文件在内存有 cache。&lt;/p&gt;
+&lt;p&gt;在写入许多小文件时，将许多同步小写转化成一个大的异步写，从而充分利用磁盘带宽。&lt;/p&gt;
+&lt;h2 id="日志结构文件系统和日志型文件系统的区别"&gt;日志结构文件系统和日志型文件系统的区别
+&lt;/h2&gt;&lt;p&gt;日志型文件系统的 log 仅用作临时存储，在崩溃恢复时使用&lt;/p&gt;
+&lt;p&gt;日志结构文件系统将 log 作为主要存储区域，并且磁盘上没有其他的结构（这是原始的 LFS）&lt;/p&gt;
+&lt;h2 id="怎样实现lfs"&gt;怎样实现LFS
+&lt;/h2&gt;&lt;h3 id="仅允许顺序写"&gt;仅允许顺序写
+&lt;/h3&gt;&lt;p&gt;将文件的改动暂存在 file cache 中，并向磁盘一次将所有的数据顺序写到 log 中（包括数据及元数据）。&lt;/p&gt;
+&lt;h3 id="支持随机读"&gt;支持随机读
+&lt;/h3&gt;&lt;p&gt;每一个文件有对应的 inode，inode 包含访问控制等信息以及指向起始 10 个数据块地址的指针、指向其他数据块地址或者其他 indirect block 的 indirect block。&lt;/p&gt;
+&lt;h3 id="空闲空间的管理"&gt;空闲空间的管理
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;将磁盘划分为一系列固定大小的 segment（512KB，这样使得找到一个 segment 不会比遍历 segment 本身更慢）&lt;/li&gt;
+&lt;li&gt;segment 中的有效数据搬移之后才能重用（垃圾回收）&lt;/li&gt;
+&lt;li&gt;有些 segment 中存放寿命较长的数据，可以在分配空间的时候跳过，以免重复搬移（冷热数据分离）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="垃圾回收"&gt;垃圾回收
+&lt;/h3&gt;&lt;p&gt;将一些 segment 读入内存，识别有效数据，并将有效数据写回干净的 segment&lt;/p&gt;
+&lt;p&gt;每个 segment 都有一个或多个 segment summary block，包含一个块属于哪个文件（ino）以及 index（为了 GC 修改映射关系）。用于识别有效数据（trivial： 检查文件 index 处的指针是否指向这个块；sprite lfs：检查版本号）&lt;/p&gt;
+&lt;p&gt;在Sprite LFS中写几十个 seg 就清理。&lt;/p&gt;
+&lt;h3 id="崩溃一致性"&gt;崩溃一致性
+&lt;/h3&gt;&lt;p&gt;LFS 采用 checkpoints 和前滚恢复保证崩溃一致性。&lt;/p&gt;
+&lt;p&gt;崩溃恢复快，只需扫描最近的 log。&lt;/p&gt;
+&lt;p&gt;（待续）&lt;/p&gt;
+&lt;h2 id="lfs的问题"&gt;LFS的问题
+&lt;/h2&gt;&lt;h3 id="wandering-tree-问题滚雪球式更新"&gt;wandering tree 问题/滚雪球式更新
+&lt;/h3&gt;&lt;p&gt;在 LFS 中，修改一个文件的数据块会导致其位置发生变化，即追加到尾部。这就导致指向该数据块的直接指针需要修改。然而修改其指针会导致指向直接指针的间接指针也需要修改。因此 inode、inode map 和 cp block 都需要递归修改。&lt;/p&gt;
+&lt;h3 id="清理开销"&gt;清理开销
+&lt;/h3&gt;&lt;p&gt;由于 LFS 的顺序写和异地更新特性，更新一个块后原来的块就作废了。这样导致盘上存在大量作废的垃圾块，需要做垃圾回收。垃圾回收的开销需要对用户隐藏，并且移动的数据量应该尽可能少，移动应该尽可能快。&lt;/p&gt;
+&lt;p&gt;LFS 中的垃圾回收严重影响性能，缩短 SSD 寿命（写放大）&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;SFS: Random write considered harmful in solid state drives FAST 12&lt;/em&gt;&lt;/p&gt;
+&lt;h2 id="f2fs的优点以及与lfs的区别"&gt;F2FS的优点以及与LFS的区别
+&lt;/h2&gt;&lt;h3 id="日志结构文件系统的固有优点"&gt;日志结构文件系统的固有优点
+&lt;/h3&gt;&lt;p&gt;f2fs 采用顺序写，因此具有适合闪存介质特性的特点。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;闪存介质只支持异地更新，不支持就地更新。&lt;/li&gt;
+&lt;li&gt;随机写导致闪存内部碎片化。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="解决了wandering-tree问题"&gt;解决了wandering tree问题
+&lt;/h3&gt;&lt;p&gt;在 LFS 中，修改一个文件的数据块会导致其位置发生变化，即追加到尾部。这就导致指向该数据块的直接指针需要修改。然而修改其指针会导致指向直接指针的间接指针也需要修改。因此 inode、inode map 和 cp block 都需要递归修改。&lt;/p&gt;
+&lt;p&gt;在F2FS中，增加了一个随机写的元数据区域。其中，引入 NAT 表记录 node 位置，切断递归更新。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;更新文件数据块-&amp;gt;更新 dnode 内容-&amp;gt;更新 NAT 表中 dnode位置-&amp;gt;结束&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="解决了lfs的高gc开销问题"&gt;解决了LFS的高GC开销问题
+&lt;/h3&gt;&lt;h4 id="采用multi-head-logging实现冷热数据分离"&gt;采用multi-head logging实现冷热数据分离
+&lt;/h4&gt;&lt;p&gt;F2FS中存在6个log，即{Hot, Warm, Cold}* {Node, Data}。&lt;/p&gt;
+&lt;p&gt;LFS中只有一个全局的大log，而F2FS中通过将空间划分为6个log实现了冷热数据分离。冷热数据分离就是为了减少GC开销。&lt;/p&gt;
+&lt;h4 id="自适应切换写入方式"&gt;自适应切换写入方式
+&lt;/h4&gt;&lt;p&gt;当空间利用率不高时，F2FS采用append方式顺序写入。&lt;/p&gt;
+&lt;p&gt;当空间利用率太高时，为了找到干净的segment需要频繁GC。这时F2FS可以采用threaded logging方式写入数据。&lt;/p&gt;
+&lt;p&gt;threaded logging是指直接在脏segment里面利用内碎片接着写，不用提前清理。&lt;/p&gt;
+&lt;h4 id="gc单位与ftl操作单元对齐"&gt;GC单位与FTL操作单元对齐
+&lt;/h4&gt;&lt;p&gt;采用Section作为GC单位，与FTL操作单元对齐。&lt;/p&gt;
+&lt;p&gt;在ZNS SSD上，Section就和Zone对齐，因此只需要做一次GC。&lt;/p&gt;
+&lt;h2 id="未列出的参考资料"&gt;未列出的参考资料
+&lt;/h2&gt;&lt;p&gt;&lt;a class="link" href="https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/%E6%80%BB%E4%BD%93%E7%BB%93%E6%9E%84.md" target="_blank" rel="noopener"
+&gt;https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/总体结构.md&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;The design and implementation of a log-structured file system&lt;/p&gt;</description></item></channel></rss>

@@ -1,0 +1,935 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>文件系统 on The Orange Flavored Whisper</title><link>https://realcedriccheng.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/</link><description>Recent content in 文件系统 on The Orange Flavored Whisper</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 08 Dec 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://realcedriccheng.github.io/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/index.xml" rel="self" type="application/rss+xml"/><item><title>F2FS的优点以及与LFS的区别</title><link>https://realcedriccheng.github.io/p/f2fs_lfs/</link><pubDate>Sun, 08 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/f2fs_lfs/</guid><description>&lt;h2 id="什么是lfs"&gt;什么是LFS
+&lt;/h2&gt;&lt;p&gt;LFS即日志结构文件系统（log-structured file system）。日志结构文件系统是一种只允许顺序写的文件系统。原始的LFS叫做Sprite(精灵) LFS，是 Sprite 网络操作系统的一部分。&lt;/p&gt;
+&lt;h2 id="为什么要将文件系统设计成日志结构的"&gt;为什么要将文件系统设计成日志结构的
+&lt;/h2&gt;&lt;p&gt;LFS的基本假设是IO 瓶颈在写不在读，因为文件在内存有 cache。&lt;/p&gt;
+&lt;p&gt;在写入许多小文件时，将许多同步小写转化成一个大的异步写，从而充分利用磁盘带宽。&lt;/p&gt;
+&lt;h2 id="日志结构文件系统和日志型文件系统的区别"&gt;日志结构文件系统和日志型文件系统的区别
+&lt;/h2&gt;&lt;p&gt;日志型文件系统的 log 仅用作临时存储，在崩溃恢复时使用&lt;/p&gt;
+&lt;p&gt;日志结构文件系统将 log 作为主要存储区域，并且磁盘上没有其他的结构（这是原始的 LFS）&lt;/p&gt;
+&lt;h2 id="怎样实现lfs"&gt;怎样实现LFS
+&lt;/h2&gt;&lt;h3 id="仅允许顺序写"&gt;仅允许顺序写
+&lt;/h3&gt;&lt;p&gt;将文件的改动暂存在 file cache 中，并向磁盘一次将所有的数据顺序写到 log 中（包括数据及元数据）。&lt;/p&gt;
+&lt;h3 id="支持随机读"&gt;支持随机读
+&lt;/h3&gt;&lt;p&gt;每一个文件有对应的 inode，inode 包含访问控制等信息以及指向起始 10 个数据块地址的指针、指向其他数据块地址或者其他 indirect block 的 indirect block。&lt;/p&gt;
+&lt;h3 id="空闲空间的管理"&gt;空闲空间的管理
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;将磁盘划分为一系列固定大小的 segment（512KB，这样使得找到一个 segment 不会比遍历 segment 本身更慢）&lt;/li&gt;
+&lt;li&gt;segment 中的有效数据搬移之后才能重用（垃圾回收）&lt;/li&gt;
+&lt;li&gt;有些 segment 中存放寿命较长的数据，可以在分配空间的时候跳过，以免重复搬移（冷热数据分离）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="垃圾回收"&gt;垃圾回收
+&lt;/h3&gt;&lt;p&gt;将一些 segment 读入内存，识别有效数据，并将有效数据写回干净的 segment&lt;/p&gt;
+&lt;p&gt;每个 segment 都有一个或多个 segment summary block，包含一个块属于哪个文件（ino）以及 index（为了 GC 修改映射关系）。用于识别有效数据（trivial： 检查文件 index 处的指针是否指向这个块；sprite lfs：检查版本号）&lt;/p&gt;
+&lt;p&gt;在Sprite LFS中写几十个 seg 就清理。&lt;/p&gt;
+&lt;h3 id="崩溃一致性"&gt;崩溃一致性
+&lt;/h3&gt;&lt;p&gt;LFS 采用 checkpoints 和前滚恢复保证崩溃一致性。&lt;/p&gt;
+&lt;p&gt;崩溃恢复快，只需扫描最近的 log。&lt;/p&gt;
+&lt;p&gt;（待续）&lt;/p&gt;
+&lt;h2 id="lfs的问题"&gt;LFS的问题
+&lt;/h2&gt;&lt;h3 id="wandering-tree-问题滚雪球式更新"&gt;wandering tree 问题/滚雪球式更新
+&lt;/h3&gt;&lt;p&gt;在 LFS 中，修改一个文件的数据块会导致其位置发生变化，即追加到尾部。这就导致指向该数据块的直接指针需要修改。然而修改其指针会导致指向直接指针的间接指针也需要修改。因此 inode、inode map 和 cp block 都需要递归修改。&lt;/p&gt;
+&lt;h3 id="清理开销"&gt;清理开销
+&lt;/h3&gt;&lt;p&gt;由于 LFS 的顺序写和异地更新特性，更新一个块后原来的块就作废了。这样导致盘上存在大量作废的垃圾块，需要做垃圾回收。垃圾回收的开销需要对用户隐藏，并且移动的数据量应该尽可能少，移动应该尽可能快。&lt;/p&gt;
+&lt;p&gt;LFS 中的垃圾回收严重影响性能，缩短 SSD 寿命（写放大）&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;SFS: Random write considered harmful in solid state drives FAST 12&lt;/em&gt;&lt;/p&gt;
+&lt;h2 id="f2fs的优点以及与lfs的区别"&gt;F2FS的优点以及与LFS的区别
+&lt;/h2&gt;&lt;h3 id="日志结构文件系统的固有优点"&gt;日志结构文件系统的固有优点
+&lt;/h3&gt;&lt;p&gt;f2fs 采用顺序写，因此具有适合闪存介质特性的特点。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;闪存介质只支持异地更新，不支持就地更新。&lt;/li&gt;
+&lt;li&gt;随机写导致闪存内部碎片化。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="解决了wandering-tree问题"&gt;解决了wandering tree问题
+&lt;/h3&gt;&lt;p&gt;在 LFS 中，修改一个文件的数据块会导致其位置发生变化，即追加到尾部。这就导致指向该数据块的直接指针需要修改。然而修改其指针会导致指向直接指针的间接指针也需要修改。因此 inode、inode map 和 cp block 都需要递归修改。&lt;/p&gt;
+&lt;p&gt;在F2FS中，增加了一个随机写的元数据区域。其中，引入 NAT 表记录 node 位置，切断递归更新。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;更新文件数据块-&amp;gt;更新 dnode 内容-&amp;gt;更新 NAT 表中 dnode位置-&amp;gt;结束&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="解决了lfs的高gc开销问题"&gt;解决了LFS的高GC开销问题
+&lt;/h3&gt;&lt;h4 id="采用multi-head-logging实现冷热数据分离"&gt;采用multi-head logging实现冷热数据分离
+&lt;/h4&gt;&lt;p&gt;F2FS中存在6个log，即{Hot, Warm, Cold}* {Node, Data}。&lt;/p&gt;
+&lt;p&gt;LFS中只有一个全局的大log，而F2FS中通过将空间划分为6个log实现了冷热数据分离。冷热数据分离就是为了减少GC开销。&lt;/p&gt;
+&lt;h4 id="自适应切换写入方式"&gt;自适应切换写入方式
+&lt;/h4&gt;&lt;p&gt;当空间利用率不高时，F2FS采用append方式顺序写入。&lt;/p&gt;
+&lt;p&gt;当空间利用率太高时，为了找到干净的segment需要频繁GC。这时F2FS可以采用threaded logging方式写入数据。&lt;/p&gt;
+&lt;p&gt;threaded logging是指直接在脏segment里面利用内碎片接着写，不用提前清理。&lt;/p&gt;
+&lt;h4 id="gc单位与ftl操作单元对齐"&gt;GC单位与FTL操作单元对齐
+&lt;/h4&gt;&lt;p&gt;采用Section作为GC单位，与FTL操作单元对齐。&lt;/p&gt;
+&lt;p&gt;在ZNS SSD上，Section就和Zone对齐，因此只需要做一次GC。&lt;/p&gt;
+&lt;h2 id="未列出的参考资料"&gt;未列出的参考资料
+&lt;/h2&gt;&lt;p&gt;&lt;a class="link" href="https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/%E6%80%BB%E4%BD%93%E7%BB%93%E6%9E%84.md" target="_blank" rel="noopener"
+&gt;https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/总体结构.md&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;The design and implementation of a log-structured file system&lt;/p&gt;</description></item><item><title>Linux 3.8中的F2FS崩溃恢复</title><link>https://realcedriccheng.github.io/p/crash_recovery_f2fs_linux3.8/</link><pubDate>Sun, 08 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/crash_recovery_f2fs_linux3.8/</guid><description>&lt;p&gt;崩溃恢复包括正常状态下的fsync和上电后的前滚恢复。因3.8版本中的f2fs是初版，较为简单。因此本文分析Linux 3.8版本中的崩溃恢复流程，借以了解崩溃恢复。&lt;/p&gt;
+&lt;h2 id="fsync分析"&gt;fsync分析
+&lt;/h2&gt;&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;span class="lnt"&gt;7
+&lt;/span&gt;&lt;span class="lnt"&gt;8
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-fallback" data-lang="fallback"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;flowchart LR
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; A[f2fs_sync_file]--&amp;gt;B[filemap_write_and_wait_range]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; A--&amp;gt;C[f2fs_balance_fs]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; A--need_cp--&amp;gt;D[f2fs_sync_fs]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; A--!need_cp--&amp;gt;E[sync_node_pages]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; A--!need_cp--&amp;gt;F[f2fs_write_inode]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; A--!need_cp--&amp;gt;G[filemap_fdatawait_range]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;fsync函数的原型为int f2fs_sync_file(struct file *file, loff_t start, loff_t end, int datasync)，其作用是将file指向的文件中，偏移量从start到end的部分刷写下盘。&lt;/p&gt;
+&lt;h3 id="刷写数据部分"&gt;刷写数据部分
+&lt;/h3&gt;&lt;p&gt;文件系统通过wbc结构体来控制写回过程的行为。这里设置wbc为&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;span class="lnt"&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;writeback_control&lt;/span&gt; &lt;span class="n"&gt;wbc&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sync_mode&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;WB_SYNC_ALL&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;// 同步写回，等待所有页面的写回完成
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;&lt;/span&gt; &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;nr_to_write&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;LONG_MAX&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;// 暂时不设置在本次操作中最多写回的页面数
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;&lt;/span&gt; &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;for_reclaim&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;// 表示当前的写回操作不是为了回收页面触发的，而是由于fsync
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;&lt;/span&gt; &lt;span class="c1"&gt;// 在内存不足的情况下，内核通过回收页面来释放内存，
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;&lt;/span&gt; &lt;span class="c1"&gt;// 在回收页面之前要先将页面写回存储设备
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;&lt;/span&gt; &lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;如果文件系统在挂载时设置为只读的，即sb中设置了MS_RDONLY标志位，则直接返回0，因为无法在只读的文件系统中写回。&lt;/p&gt;
+&lt;p&gt;接下来通过filemap_write_and_wait_range函数写回start到end的数据。函数原型是&lt;code&gt;int filemap_write_and_wait_range(struct address_space * mapping, loff_t lstart, loff_t lend);&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;该函数是一个同步操作，将mapping中lstart至lend中的脏页刷盘，等待写回完成后再返回。也即将文件指定范围的内容持久化。mapping是文件在内存中的地址空间。&lt;/p&gt;
+&lt;p&gt;在写回数据之后，调用f2fs_balance_fs检测sbi以确定是否还有足够的空闲section，如果没有就做一次主动GC。实际上这个函数经常在和写入相关的操作中被调用，每次写入后都要检查一下。&lt;/p&gt;
+&lt;p&gt;fsync和fdatasync都通过f2fs_sync_file函数执行。如果当前执行的时fdatasync，则到这里就已经结束返回了。下面是fsync中针对元数据的操作。&lt;/p&gt;
+&lt;h3 id="刷写元数据部分"&gt;刷写元数据部分
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nf"&gt;F2FS_I&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;inode&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;data_version&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="n"&gt;cur_version&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;inode&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;i_state&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;I_DIRTY&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;goto&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nf"&gt;F2FS_I&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;inode&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;data_version&lt;/span&gt;&lt;span class="o"&gt;--&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;检查该文件的data_version是否等于当前CP的cur_version。如果不等于，说明该文件是上一次CP之前就存在的，盘上有它的inode结构和目录结构。如果该文件的I_DIRTY标志位没有置位，则该文件没有发生任何变化。因此不需要做任何操作。&lt;/p&gt;
+&lt;p&gt;问题：如果该文件没有发生任何变化，为何不在最开始就做这个判断？并且5.15中没有做这个判断。&lt;/p&gt;
+&lt;p&gt;问题：为何需要F2FS_I(inode)-&amp;gt;data_version&amp;ndash;;？&lt;/p&gt;
+&lt;p&gt;接下来判断是否需要CP。&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;span class="lnt"&gt;7
+&lt;/span&gt;&lt;span class="lnt"&gt;8
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nf"&gt;S_ISREG&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;inode&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;i_mode&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="n"&gt;inode&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;i_nlink&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;need_cp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;true&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nf"&gt;is_inode_flag_set&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nf"&gt;F2FS_I&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;inode&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;FI_NEED_CP&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;need_cp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;true&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nf"&gt;space_for_roll_forward&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sbi&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;need_cp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;true&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nf"&gt;need_to_sync_dir&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sbi&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;inode&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;need_cp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;true&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;第一个if：如果不是普通文件或硬链接计数不为1（文件已被删除或有多个硬链接） 问题：为什么有多个硬链接也要CP？&lt;/li&gt;
+&lt;li&gt;第二个if：如果具有需要CP的标记&lt;/li&gt;
+&lt;li&gt;第三个if：如果没有足够的空间做前滚，也就是距离上一次CP太远了，需要前滚的数据太多了&lt;/li&gt;
+&lt;li&gt;第四个if：如果该文件所在目录文件不在上一个CP点中&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果需要CP则做CP，否则只落盘元数据，包括dnode和inode。&lt;/p&gt;
+&lt;p&gt;接下来使用sync_node_pages落盘该文件的inode和脏dnode。f2fs在做fsync的时候先将所有修改过的数据落盘（即上面的filemap_write_and_wait_range），再将其node元数据落盘（即这里的sync_node_pages）。必须保证这个顺序，否则如果fsync没有做完就断电了，上电后根据node恢复数据的时候dnode指向的数据是空的或错的。&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;这里需要对照具体的代码看。&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;在sync_node_pages中，用到的地址空间是sbi→node_inode→i_mapping。其中node_inode是一个特殊的文件，用于管理内存中的node。&lt;/p&gt;
+&lt;p&gt;扫描node_inode中的所有node，pagevec_lookup_tag用于查找其中具有PAGECACHE_TAG_DIRTY标记的脏node，并将其放入pvec中。&lt;/p&gt;
+&lt;p&gt;扫描pvec。当扫描到的node属于该文件时，为其打上fsync标记。如果扫描到的是inode，还要打dentry标记。dentry标记是指如果某个文件没有持久化过，则盘上的目录文件没有相应的结构，也没办法寻找到这个文件。&lt;em&gt;&lt;strong&gt;因此需要为其单独创建一个inode结构&lt;/strong&gt;&lt;/em&gt;，并在目录中加入这个文件。（在5.15版本中，当文件没有CP过并且也没有做过fsync才打dentry标记，第二次fsync不打）&lt;/p&gt;
+&lt;p&gt;打完标记后，通过f2fs_write_node_page和f2fs_submit_bio将node page刷写下盘。这里前者应当只是构造合并了bio，放在sbi-&amp;gt;bio[NODE]还没有提交。后者提交bio。&lt;/p&gt;
+&lt;p&gt;如果sync_node_pages没有写下任何node page，说明该文件的node都不脏。这种情况应当是truncate过，也就是删除了文件的一部分，因此没有脏node。这种情况下仅通过f2fs_write_inode刷写其inode。&lt;/p&gt;
+&lt;p&gt;问题：truncate后不应该做CP吗？可能这个早期版本没有考虑周全。&lt;/p&gt;
+&lt;p&gt;最后调用filemap_fdatawait_range确保所有的脏node都已经刷盘，这是一个同步等待操作。&lt;/p&gt;
+&lt;h1 id="前滚回复分析"&gt;前滚回复分析
+&lt;/h1&gt;&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;span class="lnt"&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-fallback" data-lang="fallback"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;flowchart
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; A[f2fs_fill_super]--&amp;gt;B[recover_fsync_data]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; B--&amp;gt;C[find_fsync_dnodes]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; B--&amp;gt;D[recover_data]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; C--&amp;gt;E[recover_inode]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; E--&amp;gt;F[recover_dentry]
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; D--&amp;gt;G[do_recover_data]
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;在挂载文件系统后，f2fs_fill_super函数调用recover_fsync_data函数做前滚回复。前滚恢复的过程包括两次扫描，即find_fsync_dnodes和recover_data。&lt;/p&gt;
+&lt;p&gt;第一次扫描find_fsync_dnodes的作用是通过扫描恢复区域的node page，确定有哪些文件是需要恢复的，并将其加入inode_list链表中。第二次扫描recover_data的作用是通过扫描恢复区域的node page，利用这些node page的内容重建文件。&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;注意：&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;两次扫描的范围相同。&lt;/li&gt;
+&lt;li&gt;扫描的对象是普通文件的dnode，也就是直接存储文件数据地址的node。inode中也存储了923个数据地址，也算作dnode。这些node在warm node log中。&lt;/li&gt;
+&lt;li&gt;恢复数据实际上是修改文件中dnode指向数据的地址。因为数据已经通过fsync落盘了，本身是不需要恢复的。但是dnode的指向关系还没有更新，因此才需要前滚回复来完成这一流程。&lt;/li&gt;
+&lt;li&gt;在前滚回复开始之前，文件系统的状态是回滚到上一次CP点。所以上一次CP点没有的文件，直接读是读不到的。因此才需要对具有dentry标记的文件单独从头恢复。
+&lt;ul&gt;
+&lt;li&gt;如果P是一个 inode，并具有 dentry 标记DENT_BIT_SHIFT，就为P对应的 inode 打FI_INC_LINK 标记。&lt;/li&gt;
+&lt;li&gt;如果某个 dnode 在 footer 中没有 checkpointed 标记，则要打上 dentry 标记。意思是这个文件没有持久化过，因此盘上的目录文件没有相应的结构，也没办法寻找到这个文件。&lt;em&gt;&lt;strong&gt;因此需要为其单独创建一个inode结构&lt;/strong&gt;&lt;/em&gt;，并在目录中加入这个文件。&lt;/li&gt;
+&lt;li&gt;既然这个表项已经存在于inode_list链表中了，那么说明P的inode结构已经创建出来了，增加引用计数是恢复目录结构中目录对该inode的引用。
+问题：我感觉FI_INC_LINK标记没有用到，因为recover_dentry中增加计数的时候并没有根据这个标记判断。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="第一次扫描-find_fsync_dnodes"&gt;第一次扫描 find_fsync_dnodes
+&lt;/h2&gt;&lt;p&gt;第一次扫描的作用是找到需要恢复的文件，并将其inode插入记录链表inode_list中。注意，inode_list并非直接存储inode结构，而是存储fsync_inode_entry结构。&lt;/p&gt;
+&lt;h3 id="扫描范围"&gt;扫描范围
+&lt;/h3&gt;&lt;p&gt;扫描的范围是上一次CP后写入的第一个node到最后一个有记录的node。其中，起始地址这样确定：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;curseg&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nf"&gt;CURSEG_I&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sbi&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;CURSEG_WARM_NODE&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;blkaddr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nf"&gt;START_BLOCK&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sbi&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;curseg&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;segno&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;curseg&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;next_blkoff&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;需要扫描的node都在warm node log中，通过CURSEG_I(sbi, CURSEG_WARM_NODE)找到上一次CP记录的warm node log对应的segment（这个信息存储在sbi中，只有CP的时候才落盘sbi）。并且找到下一个segment的起始地址。&lt;/p&gt;
+&lt;p&gt;node的footer中记录了下一个node的地址，通过blkaddr = next_blkaddr_of_node(page)可以获得。扫描终止条件是（1）下一个地址不是合法地址、取不出页面；（2）取得的 node 是上一次 CP 之前的；（3）函数返回错误、资源分配错误，可能因为盘上数据已损坏。&lt;/p&gt;
+&lt;p&gt;在扫描过程中，仅处理通过fsync落盘、具有fsync标记（FSYNC_BIT_SHIFT）的node page，通过is_fsync_dnode(page)判断。&lt;/p&gt;
+&lt;h3 id="扫描过程"&gt;扫描过程
+&lt;/h3&gt;&lt;p&gt;设当前正在扫描的node page为P，则&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;首先检查P所属的inode是否已经插入inode_list。
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;如果已有，则&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;将entry的blkaddr字段更新成P。这个地址指的是该 entry 对应的文件，在盘上扫描到的最后一个 node 的地址。也即是恢复数据的时候，处理完这个 node，就代表该文件恢复完毕了。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;如果P是一个 inode，并具有 dentry 标记DENT_BIT_SHIFT，就为P对应的 inode 打FI_INC_LINK 标记。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;如果某个 dnode 在 footer 中没有 checkpointed 标记，则要打上 dentry 标记。意思是这个文件没有持久化过，因此盘上的目录文件没有相应的结构，也没办法寻找到这个文件。&lt;em&gt;&lt;strong&gt;因此需要为其单独创建一个inode结构&lt;/strong&gt;&lt;/em&gt;，并在目录中加入这个文件。&lt;/li&gt;
+&lt;li&gt;既然这个表项已经存在于inode_list链表中了，那么说明P的inode结构已经创建出来了，增加引用计数是恢复目录结构中目录对该inode的引用。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;问题：我感觉FI_INC_LINK标记没有用到，因为recover_dentry中增加计数的时候并没有根据这个标记判断。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;如果没有，则&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;如果P是一个 inode，并具有 dentry 标记DENT_BIT_SHIFT，就根据P创建它的inode结构。&lt;/li&gt;
+&lt;li&gt;根据P的inode创建一个entry表项，并插入到inode_list链表中。&lt;/li&gt;
+&lt;li&gt;将entry的blkaddr字段设置成P。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;li&gt;如果P是一个inode，则根据P恢复文件系统中对应inode的结构。其中如果P是刚创建出来的，则还需要通过recover_dentry恢复目录结构。
+&lt;ol&gt;
+&lt;li&gt;recover_inode 函数中恢复一些时间戳、文件大小和 mode。然后调用 recover_dentry 恢复目录结构。&lt;/li&gt;
+&lt;li&gt;只有具有 DENT_BIT_SHIFT 标记的 page，也就是之前过的没有持久化过的文件才需要单独在这里恢复目录结构。&lt;/li&gt;
+&lt;li&gt;得到其目录文件的 inode，并建立相应的目录结构 dent。&lt;/li&gt;
+&lt;li&gt;如果在目录文件中存在本文件名字的目录项则没事，如果不存在，就将 dent 加入目录文件中（f2fs_add_link）。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="第二次扫描-recover_data"&gt;第二次扫描 recover_data
+&lt;/h2&gt;&lt;h3 id="扫描范围-1"&gt;扫描范围
+&lt;/h3&gt;&lt;p&gt;第二次扫描的范围和第一次相同。&lt;/p&gt;
+&lt;h3 id="扫描过程-1"&gt;扫描过程
+&lt;/h3&gt;&lt;p&gt;将当前扫描到的 node page （设为P）读上来，检查是否属于第一轮扫描中加入到 inode_list 链表中的文件。如果是，则通过 do_recover_data 利用P的内容恢复数据。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;获取P中包含数据的范围&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;首先通过P中的标志位获知P是第几个dnode，从而计算其中存储数据的index范围。&lt;/p&gt;
+&lt;p&gt;ofs_of_node 函数通过获取P的 node_ofs 获取该 dnode 在整个文件中的偏移量。这个 node_ofs 保存在中 footer.flag 的高位中（低 3 位保存的是 COLD_BIT、FSYNC_BIT 和 DENT_BIT），右移 OFFSET_BIT_SHIFT 位即可得到 node_ofs。&lt;/p&gt;
+&lt;p&gt;node_ofs 指的是 dnode 在整个文件中的偏移量，即第几个 dnode。从而可以得到该 dnode 指向的数据在整个文件中的 index。&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://blog.csdn.net/geshifei/article/details/126745306" target="_blank" rel="noopener"
+&gt;F2FS数据块寻址（linux5.18.11）_f2fs node和data-CSDN博客&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;总之，这里获得了P中保存的数据之首尾 index，分别叫 start 和 end。&lt;/p&gt;
+&lt;ol start="2"&gt;
+&lt;li&gt;根据P恢复文件中对应index的数据&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;注意恢复数据是指将上一给CP点中该文件指向的旧的数据地址更新为P中包含的地址，还涉及涉及对 summary、extent cache 和 SIT 等的修改。&lt;/p&gt;
+&lt;p&gt;接下来从 start 开始一直恢复到 end。在一个 for 循环内，逐个恢复每个 index 对应的数据块。src 表示盘上读出的数据块地址、dest 表示扫描到的 page 里得到的数据块地址。&lt;/p&gt;
+&lt;p&gt;如果 src== dest，表示盘上读出的地址就是最新的地址，没必要恢复。如果 dest== NEW_ADDR 或 NULL_ADDR，表示 page 上扫描到的这个数据块有问题，没有办法恢复。&lt;/p&gt;
+&lt;p&gt;恢复完数据后，如果P和刚恢复完的都是inode，就刷下去。&lt;/p&gt;
+&lt;p&gt;用P恢复读上来的 node page自身结构，如footer等。&lt;/p&gt;
+&lt;ol start="3"&gt;
+&lt;li&gt;回到 recover_data&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;在用 do_recover_data 恢复数据后，如果P就是 inode list entry 记录的最后一个 blkaddr，则表示该 inode 对应的文件已经恢复完成，删除这个表项。&lt;/p&gt;
+&lt;p&gt;找到下一个 node 的地址，继续下一轮恢复。&lt;/p&gt;
+&lt;h2 id="收尾工作"&gt;收尾工作
+&lt;/h2&gt;&lt;p&gt;在恢复完 inode_list 中的所有表项以后，就删除临时创建的所有数据结构、收回分配的所有空间。&lt;/p&gt;
+&lt;p&gt;最后再做一次 CP。&lt;/p&gt;
+&lt;h1 id="注意"&gt;注意
+&lt;/h1&gt;&lt;ol&gt;
+&lt;li&gt;要使用一个 page 的内容，先要通过 page_address 取得其内容在内存中的虚拟地址，然后通过结构体访问。&lt;/li&gt;
+&lt;li&gt;盘上的 node page 实际是以 f2fs_node 的形式存放的。并不是 vfs 的 inode 结构体。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h1 id="文中未列出的参考资料"&gt;文中未列出的参考资料
+&lt;/h1&gt;&lt;p&gt;（&lt;a class="link" href="https://blog.csdn.net/luckyapple1028/article/details/61413724%EF%BC%89" target="_blank" rel="noopener"
+&gt;https://blog.csdn.net/luckyapple1028/article/details/61413724）&lt;/a&gt;&lt;/p&gt;</description></item><item><title>使用F2FS文件系统</title><link>https://realcedriccheng.github.io/p/use_f2fs_filesystem/</link><pubDate>Sun, 08 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/use_f2fs_filesystem/</guid><description>&lt;h2 id="挂载f2fs"&gt;挂载F2FS
+&lt;/h2&gt;&lt;p&gt;文件系统可以挂载在盘上，也可以挂载在文件上。有时候为了实验会在文件上挂载一个文件系统。&lt;/p&gt;
+&lt;h3 id="创建一个100m的空文件"&gt;创建一个100M的空文件：
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;dd&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="o"&gt;=/&lt;/span&gt;&lt;span class="n"&gt;dev&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;zero&lt;/span&gt; &lt;span class="n"&gt;of&lt;/span&gt;&lt;span class="o"&gt;=/&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;local&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;tmp&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;f2fs_100MB&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;bin&lt;/span&gt; &lt;span class="n"&gt;bs&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="n"&gt;M&lt;/span&gt; &lt;span class="n"&gt;count&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;100&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;其中，if是指从zero设备中取数据，取出的都是0。of是指将0写入后面路径的文件中，大小是100个1M。&lt;/p&gt;
+&lt;h3 id="格式化文件系统"&gt;格式化文件系统
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;make_f2fs&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;f&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;d1&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;g&lt;/span&gt; &lt;span class="n"&gt;android&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;O&lt;/span&gt; &lt;span class="n"&gt;compression&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;O&lt;/span&gt; &lt;span class="n"&gt;extra_attr&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;local&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;tmp&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;f2fs_100MB&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;bin&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;(参数待查)&lt;/p&gt;
+&lt;h3 id="获取文件系统信息"&gt;获取文件系统信息
+&lt;/h3&gt;&lt;p&gt;使用dump.f2fs命令获取文件系统的信息&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;dump&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;f2fs&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="n"&gt;f2fs_100MB&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;bin&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;(参数待查)&lt;/p&gt;
+&lt;h2 id="未列出的参考资料"&gt;未列出的参考资料
+&lt;/h2&gt;&lt;p&gt;&lt;a class="link" href="https://mp.weixin.qq.com/s/FbGyxclb1Gesk8_apEexPQ" target="_blank" rel="noopener"
+&gt;https://mp.weixin.qq.com/s/FbGyxclb1Gesk8_apEexPQ&lt;/a&gt;&lt;/p&gt;</description></item><item><title>F2FS 文件系统相关概念</title><link>https://realcedriccheng.github.io/p/concepts_on_f2fs_filesystem/</link><pubDate>Sat, 07 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/concepts_on_f2fs_filesystem/</guid><description>&lt;blockquote&gt;
+&lt;p&gt;可参看https://github.com/RiweiPan/F2FS-NOTES/&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id="什么是f2fs"&gt;什么是F2FS
+&lt;/h2&gt;&lt;p&gt;F2FS, Flash Friendly File System，是一种采用日志结构，适合闪存特性的文件系统。&lt;/p&gt;
+&lt;p&gt;F2FS是从原始LFS的基础上发展来的。详见：[[原始LFS设计]]&lt;/p&gt;
+&lt;p&gt;F2FS 的设计主要解决了原始 LFS 中的滚雪球式更新元数据（wandering tree）问题。&lt;/p&gt;
+&lt;h2 id="f2fs的优点"&gt;F2FS的优点
+&lt;/h2&gt;&lt;p&gt;详见：（本站）F2FS的优点以及与LFS的区别&lt;/p&gt;
+&lt;h2 id="f2fs文件系统设计"&gt;F2FS文件系统设计
+&lt;/h2&gt;&lt;p&gt;F2FS在盘上组织为两个区域：随机写区域和顺序写区域。&lt;/p&gt;
+&lt;p&gt;因此在ZNS SSD上使用F2FS时，还需挂载另一块用于存放元数据的可随机写的盘。&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/concepts_on_f2fs_filesystem/a74771c951a07366914be4397c464189_MD5.jpeg"
+width="777"
+height="166"
+srcset="https://realcedriccheng.github.io/p/concepts_on_f2fs_filesystem/a74771c951a07366914be4397c464189_MD5_hu_5b46c2407e8102ae.jpeg 480w, https://realcedriccheng.github.io/p/concepts_on_f2fs_filesystem/a74771c951a07366914be4397c464189_MD5_hu_31893e4e74bfe147.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="468"
+data-flex-basis="1123px"
+&gt;&lt;/p&gt;
+&lt;p&gt;随机写区域存放的是文件系统的元数据，包括超级块、CP、SIT、NAT和SSA。&lt;/p&gt;
+&lt;p&gt;顺序写区域，也叫Main Area。存放的是Data Page和Node Page。顺序写区域还分为冷热分离的6个log。&lt;/p&gt;
+&lt;h2 id="f2fs文件系统的元数据"&gt;F2FS文件系统的元数据
+&lt;/h2&gt;&lt;p&gt;F2FS中的元数据有超级块、CP、SIT、NAT、SSA。这些元数据放在随机写区域。&lt;/p&gt;
+&lt;p&gt;这里说的元数据是整个F2FS文件系统的元数据，而不是data的元数据（各种node）。&lt;/p&gt;
+&lt;h3 id="超级块"&gt;超级块
+&lt;/h3&gt;&lt;p&gt;每个文件系统都有自己的超级块，超级块中存放文件系统整体的关键元数据。超级块（Superblock）存放在F2FS文件系统的起始位置，这样挂载后不用寻址就能直接读到超级块。&lt;/p&gt;
+&lt;p&gt;超级块区域包含两个struct f2fs_super_block，互为备份。超级块区域的大小为2M，其中前1K留空，每个超级块占4K，后面留空。&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/concepts_on_f2fs_filesystem/85c11a4687276d9ec23684b7735f7321_MD5.jpeg"
+width="385"
+height="553"
+srcset="https://realcedriccheng.github.io/p/concepts_on_f2fs_filesystem/85c11a4687276d9ec23684b7735f7321_MD5_hu_34f0846c927f893d.jpeg 480w, https://realcedriccheng.github.io/p/concepts_on_f2fs_filesystem/85c11a4687276d9ec23684b7735f7321_MD5_hu_80549a13a4311011.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="69"
+data-flex-basis="167px"
+&gt;&lt;/p&gt;
+&lt;p&gt;文件系统相关的数据结构通常都有三个：盘上的、内存中文件系统专属的和内存中vfs使用的。&lt;/p&gt;
+&lt;h4 id="盘上数据结构struct-f2fs_super_block"&gt;盘上数据结构struct f2fs_super_block
+&lt;/h4&gt;&lt;p&gt;f2fs_super_block中的主要内容有：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;zone、section和segment的数量对应关系&lt;/li&gt;
+&lt;li&gt;section、segment、block数量&lt;/li&gt;
+&lt;li&gt;元数据区各个部分、主区域segment数量&lt;/li&gt;
+&lt;li&gt;元数据区各个部分、主区域起始地址&lt;/li&gt;
+&lt;li&gt;特殊文件的inode（见下文）&lt;/li&gt;
+&lt;li&gt;用于辨识冷数据的后缀表&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;详见：&lt;a class="link" href="https://mp.weixin.qq.com/s/FbGyxclb1Gesk8_apEexPQ" target="_blank" rel="noopener"
+&gt;https://mp.weixin.qq.com/s/FbGyxclb1Gesk8_apEexPQ&lt;/a&gt;&lt;/p&gt;
+&lt;h4 id="内存管理结构f2fs_sb_info"&gt;内存管理结构f2fs_sb_info
+&lt;/h4&gt;&lt;p&gt;f2fs_sb_info是内存中用于管理超级块的结构。&lt;/p&gt;
+&lt;p&gt;在挂载文件系统时，通过init_sb_info将f2fs_super_block中的数据填入f2fs_sb_info中。&lt;/p&gt;
+&lt;p&gt;包含vfs superblock指针、f2fs_super_block指针以及锁、SIT、NAT对应的内存管理结构等。&lt;/p&gt;
+&lt;h4 id="vfs-superblock结构"&gt;vfs superblock结构
+&lt;/h4&gt;&lt;p&gt;略&lt;/p&gt;
+&lt;h3 id="cp"&gt;CP
+&lt;/h3&gt;&lt;p&gt;Checkpoint维护了f2fs的数据一致性，例如segment、node、active segment的状态等。&lt;/p&gt;
+&lt;p&gt;F2FS在满足一定的条件的情况下，会将当前系统的分配状态写入到Checkpoint中，万一系统出现突然宕机，可以从Checkpoint中恢复到上次回写时的状态。&lt;/p&gt;
+&lt;p&gt;F2FS维护了两个Checkpoint结构，其中一个是当前正在使用的Checkpoint。另外一个上次回写的稳定的cp。&lt;/p&gt;
+&lt;p&gt;如果系统出现了宕机，就恢复到上次的稳定cp中。&lt;/p&gt;
+&lt;h4 id="cp的盘上结构"&gt;CP的盘上结构
+&lt;/h4&gt;&lt;p&gt;CP占用2个segment大小（4M）。&lt;/p&gt;
+&lt;p&gt;有资料说CP区域就是两个struct f2fs_checkpoint。但是还有资料说还包含orphan node和active segments。&lt;/p&gt;
+&lt;p&gt;暂且认为盘上的cp区域由两套f2fs_checkpoint+orphan node+active segment组成。&lt;/p&gt;
+&lt;p&gt;F2FS使用数据结构&lt;code&gt;f2fs_checkpoint&lt;/code&gt;表示Checkpoint结构，它保存在磁盘中&lt;code&gt;f2fs_super_block&lt;/code&gt;之后区域中。&lt;/p&gt;
+&lt;p&gt;详见 &lt;a class="link" href="https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/Checkpoint%E7%BB%93%E6%9E%84.md" target="_blank" rel="noopener"
+&gt;https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/Checkpoint%E7%BB%93%E6%9E%84.md&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;CP中存的是做CP时候的segment journal等，在恢复的时候会恢复到CP时的curseg状态。为了减少写盘次数，f2fs不会每次分配seg、node的时候就去写NAT、SSA等区域，而是放在journal保存在CP结构中。只有这个seg写完的时候才去更新一下。&lt;/p&gt;
+&lt;h3 id="sit"&gt;SIT
+&lt;/h3&gt;&lt;p&gt;Segment Info Table 占据大小由Main Area中Segment数量决定。主要用于记录Main Area中Segment的分配信息，例如哪些Segment可用，Segment最后修改时间等信息。&lt;/p&gt;
+&lt;p&gt;SIT的作用是维护每一个segment的block的使用状态以及有效无效状态，目的是便于分配block以及垃圾回收。&lt;/p&gt;
+&lt;p&gt;详见：&lt;a class="link" href="https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/Segment%20Infomation%20Table%E7%BB%93%E6%9E%84.md" target="_blank" rel="noopener"
+&gt;https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/Segment%20Infomation%20Table%E7%BB%93%E6%9E%84.md&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id="nat"&gt;NAT
+&lt;/h3&gt;&lt;p&gt;用于记录Node的地址，这是解决wandering tree的关键设计。&lt;/p&gt;
+&lt;p&gt;详见：&lt;a class="link" href="https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/Node%20Address%20Table%E7%BB%93%E6%9E%84.md" target="_blank" rel="noopener"
+&gt;https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/Node%20Address%20Table%E7%BB%93%E6%9E%84.md&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id="ssa"&gt;SSA
+&lt;/h3&gt;&lt;p&gt;用于反向索引。通过SIT和NAT可以正向索引到主区域中的block。在这里可以通过block找到所属的node。也就是可以实现通过物理地址找到逻辑地址。GC的时候很有用。&lt;/p&gt;
+&lt;p&gt;同时它也具有通过journal缓存sit或者nat的操作用于数据恢复的作用。&lt;/p&gt;
+&lt;p&gt;详见：&lt;a class="link" href="https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/Segment%20Summary%20Area%E7%BB%93%E6%9E%84.md" target="_blank" rel="noopener"
+&gt;https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/Segment%20Summary%20Area%E7%BB%93%E6%9E%84.md&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id="f2fs中的journal"&gt;F2FS中的journal
+&lt;/h2&gt;&lt;p&gt;在f2fs读写文件的时候，每修改一个块，都会改动f2fs_node的地址映射和NAT、SIT信息。为了避免频繁刷盘，f2fs将这种小变化写到journal里，在CP的时候再写入磁盘。&lt;/p&gt;
+&lt;p&gt;journal相关的数据结构有&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_journal&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;union&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le16&lt;/span&gt; &lt;span class="n"&gt;n_nats&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* 这个journal里面包含多少个nat_journal对象 */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le16&lt;/span&gt; &lt;span class="n"&gt;n_sits&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* 这个journal里面包含多少个sit_journal对象 */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="cm"&gt;/* spare area is used by NAT or SIT journals or extra info */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;union&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;nat_journal&lt;/span&gt; &lt;span class="n"&gt;nat_j&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;sit_journal&lt;/span&gt; &lt;span class="n"&gt;sit_j&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_extra_info&lt;/span&gt; &lt;span class="n"&gt;info&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;这表示一个f2fs_journal要么保存nat，要么保存sit。&lt;/p&gt;
+&lt;p&gt;nat journal:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;span class="lnt"&gt;13
+&lt;/span&gt;&lt;span class="lnt"&gt;14
+&lt;/span&gt;&lt;span class="lnt"&gt;15
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;nat_journal&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;nat_journal_entry&lt;/span&gt; &lt;span class="n"&gt;entries&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;NAT_JOURNAL_ENTRIES&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__u8&lt;/span&gt; &lt;span class="n"&gt;reserved&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;NAT_JOURNAL_RESERVED&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;nat_journal_entry&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;nid&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_nat_entry&lt;/span&gt; &lt;span class="n"&gt;ne&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_nat_entry&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__u8&lt;/span&gt; &lt;span class="n"&gt;version&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* latest version of cached nat entry */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;ino&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* inode number */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;block_addr&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* block address */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;sit journal&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;span class="lnt"&gt;13
+&lt;/span&gt;&lt;span class="lnt"&gt;14
+&lt;/span&gt;&lt;span class="lnt"&gt;15
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;sit_journal&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;sit_journal_entry&lt;/span&gt; &lt;span class="n"&gt;entries&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;SIT_JOURNAL_ENTRIES&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__u8&lt;/span&gt; &lt;span class="n"&gt;reserved&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;SIT_JOURNAL_RESERVED&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;sit_journal_entry&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;segno&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_sit_entry&lt;/span&gt; &lt;span class="n"&gt;se&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_sit_entry&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le16&lt;/span&gt; &lt;span class="n"&gt;vblocks&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* reference above */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__u8&lt;/span&gt; &lt;span class="n"&gt;valid_map&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;SIT_VBLOCK_MAP_SIZE&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="cm"&gt;/* SIT_VBLOCK_MAP_SIZE = 64，64 * 8 = 512 可以表示每一个块的valid状态 */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le64&lt;/span&gt; &lt;span class="n"&gt;mtime&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* segment age for cleaning */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;在f2fs_get_node_info中，首先在journal中找到地址。如果没找到，再去读盘上的f2fs_nat_block。&lt;/p&gt;
+&lt;p&gt;在cp的时候，将journal的信息写盘。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;f2fs_flush_nat_entries&lt;/code&gt; 和 &lt;code&gt;f2fs_flush_sit_entries&lt;/code&gt; 函数将entry都写入到 &lt;code&gt;curseg_info-&amp;gt;f2fs_summary-&amp;gt;journal&lt;/code&gt; 的变量中。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;do_checkpoint函数&lt;/code&gt; 读取 &lt;code&gt;curseg_info-&amp;gt;f2fs_summary&lt;/code&gt;，然后通过函数&lt;code&gt;f2fs_write_node_summaries&lt;/code&gt;或&lt;code&gt;f2fs_write_data_summaries&lt;/code&gt; 刷写到磁盘中。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="f2fs中文件的组织"&gt;F2FS中文件的组织
+&lt;/h2&gt;&lt;p&gt;文件分为数据和元数据两部分：数据是指文件保存的内容，元数据是指为了管理和组织数据而附加的结构。&lt;/p&gt;
+&lt;p&gt;一般文件采用inode-data模式，即一个inode代表管理一个文件的抓手，通过inode的操作可以访问文件数据。&lt;/p&gt;
+&lt;p&gt;F2FS中的inode包括Metadata部分和数据块寻址部分。Metadata部分是用于描述文件的元数据，数据块寻址部分是用来找到文件中给定index的块。&lt;/p&gt;
+&lt;h3 id="文件寻址"&gt;文件寻址
+&lt;/h3&gt;&lt;p&gt;直接记录数据块地址的元数据称为dnode。一个dnode中包含许多index-&amp;gt;数据地址的映射条目。&lt;/p&gt;
+&lt;p&gt;dnode数量太多，无法全部放入inode中，因此存在indnode，用来存放index-&amp;gt;dnode的映射条目。&lt;/p&gt;
+&lt;p&gt;由于inode自己保存了923个数据块地址，所以inode也可以算作dnode。&lt;/p&gt;
+&lt;p&gt;每个node page的大小都是4K。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;inode本身保存了923个数据块的地址，称为direct pointer&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;f2fs_inode-&amp;gt;i_nid[0~1]&lt;/code&gt; 保存了两个 &lt;code&gt;direct_node&lt;/code&gt; 的地址，这里可以保存 2 x 1018个block的数据&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;f2fs_inode-&amp;gt;i_nid[2~3]&lt;/code&gt; 保存了两个&lt;code&gt;indirect_node&lt;/code&gt; 的地址，这两个其中2个&lt;code&gt;indirect_node&lt;/code&gt;保存的是 &lt;code&gt;direct_node&lt;/code&gt; 的nid，因此可以保存 2 x 1018 x 1018个block的数据;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;f2fs_inode-&amp;gt;i_nid[4]&lt;/code&gt; 保存了一个&lt;code&gt;indirect_node&lt;/code&gt; 的地址，这个&lt;code&gt;indirect_node&lt;/code&gt;保存的是 &lt;code&gt;indirect_node&lt;/code&gt; 的nid，因此可以保存 1018 x 1018 x 1018个页的数据&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;可以得到如下计算公式: &lt;strong&gt;4KB x (923 + 2 x 1018 + 2 x 1018 x 1018 + 1 x 1018 x 1018 x 1018) = 3.93TB&lt;/strong&gt; 因此F2FS单个文件最多了保存3.93TB数据。&lt;/p&gt;
+&lt;h3 id="node-结构"&gt;node 结构
+&lt;/h3&gt;&lt;p&gt;这里说的是盘上结构。为了方便管理，inode、dnode和indnode都用f2fs_node描述。用footer区分，nid == ino则是inode。&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;span class="lnt"&gt;13
+&lt;/span&gt;&lt;span class="lnt"&gt;14
+&lt;/span&gt;&lt;span class="lnt"&gt;15
+&lt;/span&gt;&lt;span class="lnt"&gt;16
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_node&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;union&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_inode&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;direct_node&lt;/span&gt; &lt;span class="n"&gt;dn&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;indirect_node&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;node_footer&lt;/span&gt; &lt;span class="n"&gt;footer&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// footer用于记录node的类型
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;node_footer&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;nid&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* node id */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;ino&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* inode nunmber */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;flag&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* include cold/fsync/dentry marks and offset */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le64&lt;/span&gt; &lt;span class="n"&gt;cp_ver&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* checkpoint version */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;next_blkaddr&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* next node page block address */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;其中，inode的结构为&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_inode&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;...&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;i_addr&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;DEF_ADDRS_PER_INODE&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="c1"&gt;// DEF_ADDRS_PER_INODE=923
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;&lt;/span&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;i_nid&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;DEF_NIDS_PER_INODE&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="c1"&gt;// DEF_NIDS_PER_INODE=5
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;&lt;/span&gt; &lt;span class="p"&gt;...&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;数组i_addr保存了直接指向的923个地址，下标是数据块的index。&lt;/p&gt;
+&lt;p&gt;数组i_nid保存了指向的dnode和indnode。下标已经解释过。&lt;/p&gt;
+&lt;p&gt;dnode的结构为&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;direct_node&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;addr&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;ADDRS_PER_BLOCK&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="c1"&gt;// ADDRS_PER_BLOCK=1018
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;数组addr保存了直接指向的1018个地址，下标是处理后的index。&lt;/p&gt;
+&lt;p&gt;indnode的结构为&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;indirect_node&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;nid&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;NIDS_PER_BLOCK&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="c1"&gt;// NIDS_PER_BLOCK=1018
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;__packed&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;数组nid保存了指向的dnode的nid，下标是处理后的index。&lt;/p&gt;
+&lt;p&gt;注意：指向node的都是nid而不是node的地址，因为node的地址在NAT中。&lt;/p&gt;
+&lt;p&gt;假设一个文件的数据块发生修改，只需要将数据块异地更新后的新地址填入dnode中（这也是异地更新），再在NAT中更新dnode的地址（就地更新）。这样就解决了wandering tree问题。&lt;/p&gt;
+&lt;h3 id="内联数据"&gt;内联数据
+&lt;/h3&gt;&lt;p&gt;小于922 * 4=3688B的文件，数据可以直接放在inode中。&lt;/p&gt;
+&lt;p&gt;详见：&lt;a class="link" href="https://github.com/RiweiPan/F2FS-NOTES/blob/master/Reading-and-Writing/file_data_structure.md" target="_blank" rel="noopener"
+&gt;https://github.com/RiweiPan/F2FS-NOTES/blob/master/Reading-and-Writing/file_data_structure.md&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id="f2fs中的特殊文件"&gt;F2FS中的特殊文件
+&lt;/h2&gt;&lt;p&gt;f2fs中有3个特殊的文件，其inode号分别为1、2、3。&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-c" data-lang="c"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nf"&gt;set_sb&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node_ino&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nf"&gt;set_sb&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;meta_ino&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nf"&gt;set_sb&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;root_ino&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id="node_inode"&gt;node_inode
+&lt;/h3&gt;&lt;p&gt;盘上除了数据外，还有node。文件系统将node读入内存后，放在node_inode对应的文件中便于管理和访问。&lt;/p&gt;
+&lt;p&gt;node_inode文件的data page 里保存了文件系统中读入内存的 node 的数据，顺序更新。根据 nid 可以从 node inode 的 mapping 里获取对应的 page，之后通过 f2fs_get_node_info 从 NAT 获取 nid 对应的 blkaddr，最后提交 io 获取 page。接口为 f2fs_get_node_page。&lt;/p&gt;
+&lt;p&gt;在 inode 创建时，通过 f2fs_new_inode_page 创建 node page。另外在保留 data block 时，如果现有 node 空间不足以存放 data block addr，则需要通过 ALLOC_NODE 模式调用 f2fs_get_dnode_of_data，在内部创建 node page。&lt;/p&gt;
+&lt;h3 id="meta_inode"&gt;meta_inode
+&lt;/h3&gt;&lt;p&gt;盘上还有元数据区域，如SSA、NAT等。这些数据在读入内存后，放在meta_inode文件中管理。&lt;/p&gt;
+&lt;h3 id="root_inode"&gt;root_inode
+&lt;/h3&gt;&lt;p&gt;文件系统在挂载之后有一个根目录。root_inode对应的就是根目录的目录文件。&lt;/p&gt;
+&lt;h3 id="compress_inode"&gt;compress_inode
+&lt;/h3&gt;&lt;p&gt;如果开启了压缩功能，还有一个compress_inode，这里略过。&lt;/p&gt;
+&lt;p&gt;特殊文件的ino号是从1开始的，因为 nid = 0 被视作未分配，或者无效。参考 __get_node_page。另外在 truncate_dnode 里，nid == 0 即视作已经 truncate。&lt;/p&gt;
+&lt;h2 id="ipu-和-opu"&gt;IPU 和 OPU
+&lt;/h2&gt;&lt;p&gt;ipu，in-place-update 就地更新：在原地更新数据。传统文件系统如 ext4 都采用。&lt;/p&gt;
+&lt;p&gt;opu，out-of-place-update 异地更新：将更新后的数据写在新的地址，修改映射到新地址。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;分配一个新的物理地址&lt;/li&gt;
+&lt;li&gt;将数据写入新的物理地址&lt;/li&gt;
+&lt;li&gt;将旧的物理地址无效掉，然后等GC回收&lt;/li&gt;
+&lt;li&gt;更新逻辑地址和物理地址的映射关系&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;异地更新更适合闪存特性。 OPU 的缺点在于（1）产生无效块，造成 GC 开销；（2）更新元数据的开销；（3）数据碎片化&lt;/p&gt;
+&lt;h2 id="参考资料"&gt;参考资料
+&lt;/h2&gt;&lt;p&gt;&lt;a class="link" href="https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/Superblock%E7%BB%93%E6%9E%84.md" target="_blank" rel="noopener"
+&gt;https://github.com/RiweiPan/F2FS-NOTES/blob/master/F2FS-Layout/Superblock结构.md&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://mp.weixin.qq.com/s/9bQSO1rAZIAv9-VMXOfaCA" target="_blank" rel="noopener"
+&gt;https://mp.weixin.qq.com/s/9bQSO1rAZIAv9-VMXOfaCA&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://mp.weixin.qq.com/s/FbGyxclb1Gesk8_apEexPQ" target="_blank" rel="noopener"
+&gt;https://mp.weixin.qq.com/s/FbGyxclb1Gesk8_apEexPQ&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://www.cnblogs.com/liuchao719/p/some_special_node_id_in_F2FS.html%EF%BC%89" target="_blank" rel="noopener"
+&gt;https://www.cnblogs.com/liuchao719/p/some_special_node_id_in_F2FS.html&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://www.cnblogs.com/liuchao719/p/some_special_node_id_in_F2FS.html%EF%BC%89" target="_blank" rel="noopener"
+&gt;https://www.cnblogs.com/liuchao719/p/some_special_node_id_in_F2FS.html&lt;/a&gt;&lt;/p&gt;</description></item><item><title>Linux中的数据完整性（Data Integrity）</title><link>https://realcedriccheng.github.io/p/data_integrity_in_linux/</link><pubDate>Sat, 07 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/data_integrity_in_linux/</guid><description>&lt;h1 id="linux中的数据完整性data-integrity"&gt;Linux中的数据完整性（Data Integrity）
+&lt;/h1&gt;&lt;p&gt;文件系统在检验数据完整性的时候，总是在读取数据的时候才会计算元数据的校验和（checksum），以查验数据是否有损坏。然而此时可能数据刚刚写入，也可能数据已经写入几个月甚至更久了。如果数据刚写入不久，也许还能找到原始数据重新写入。如果间隔太久了，就只能丢失了（或采用纠删码技术等）。&lt;/p&gt;
+&lt;p&gt;为了解决这一问题，SCSI协议中增加了完整性元数据（integrity metadata, IMD)，也叫保护信息(Protective Information, PI)。也就是说在写入数据的时候，向每个扇区附加8个字节的保护信息。&lt;/p&gt;
+&lt;p&gt;注意：在这里，扇区（sector）、块（block）、页（page）可以理解成同样的概念。为了兼容以前HDD时代的叫法，虽然SSD中没有扇区的概念，但我们还是把硬盘中的最小单位叫做扇区。也就是说，扇区是硬盘中的概念，在数据从硬盘读到内存的过程中，会经过文件系统。而在文件系统中，数据的最小处理单位是块。当数据读到内存中以后，便以页的形式表现，并由内存管理系统中的段、页管理系统等管理。而SSD的扇区大小通常是4KB，文件系统中的块、内存中的页通常也是4KB。总而言之，这三个概念只是同一段数据在不同载体上的不同名称。&lt;/p&gt;
+&lt;p&gt;附加保护信息以后，IO链路中的每个节点，如文件系统，SCSI控制器等收到上层发来的文件数据以后，都可以计算校验码检测数据是否完整。&lt;/p&gt;
+&lt;p&gt;在实现中会遇到一些问题，一个是传统的块大小都是4KB，如果加上8B变成4104B，不方便操作系统处理。另一个是软件方法计算CRC校验码的开销很大。&lt;/p&gt;
+&lt;p&gt;针对第一个问题，可以采用聚散列表（scatter-gather list）的方式管理保护信息。控制器将在写时交叉（interleave）缓冲区，在读时分割（split）缓冲区。这意味着Linux可以在不改变页缓存（page cache）的情况下将数据缓冲区DMA到主机内存。这个具体的实现要之后看一下代码才知道。&lt;/p&gt;
+&lt;p&gt;针对第二个问题，可以在操作系统层面采用开销较小的校验和，如IP校验和等。&lt;/p&gt;
+&lt;p&gt;数据和完整性元数据缓冲区的分离，以及校验和的选择被称为数据完整性扩展（Data Integrity Extensions）&lt;/p&gt;
+&lt;p&gt;附：Linux关于数据完整性的文档&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://www.kernel.org/doc/Documentation/block/data-integrity.rst" target="_blank" rel="noopener"
+&gt;https://www.kernel.org/doc/Documentation/block/data-integrity.rst&lt;/a&gt;&lt;/p&gt;</description></item><item><title>事务的原子性和文件系统的崩溃一致性</title><link>https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/</link><pubDate>Sat, 07 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/</guid><description>&lt;h2 id="事务的原子性和文件系统的崩溃一致性"&gt;事务的原子性和文件系统的崩溃一致性
+&lt;/h2&gt;&lt;p&gt;事务的原子性是指一个事务要么被执行，要么不被执行，不能执行一半。&lt;/p&gt;
+&lt;p&gt;在文件系统中，由于存在突然掉电的情况，会导致文件系统的不一致。这就是文件系统的崩溃一致性（Crash Consistency）问题。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;例 1：&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;一个事务包含多个写 IO，删除文件的步骤有&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;删除该文件的条目；&lt;/li&gt;
+&lt;li&gt;将文件占用的块在 bitmap 中置为 0。&lt;/li&gt;
+&lt;li&gt;如果在 1、2 之间掉电，会导致上电后文件系统不一致。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;例 2：&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/1.jfif"
+width="640"
+height="130"
+srcset="https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/1_hu_7fed3359bcd42ca7.jfif 480w, https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/1_hu_ac9a7188b4fc997e.jfif 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="492"
+data-flex-basis="1181px"
+&gt;&lt;/p&gt;
+&lt;p&gt;一个事务包含一个写 IO，一个写 IO 在从文件系统到硬件设备的每一个环节都很有可能被分解为多个 IO。如 write_data_pages-&amp;gt;write_data_page；在 IO 控制器、硬盘上往往会由缓冲 buffer 分割写入。如果一个文件没有完全落盘就突然掉电，则该文件可能修改了一部分，造成不一致。&lt;/p&gt;
+&lt;p&gt;注意：读 IO 不会影响原子性和一致性。&lt;/p&gt;
+&lt;p&gt;关于文件系统不一致的例子参看&lt;a class="link" href="https://pages.cs.wisc.edu/~remzi/OSTEP/file-journaling.pdf" target="_blank" rel="noopener"
+&gt;file-journaling.pdf&lt;/a&gt;，一般会有垃圾数据、空间泄漏和文件系统元数据结构不一致等问题。只有一种情况，即只写了数据却没有更新 inode 和 bitmap 这两个元数据的时候，才没有造成文件系统不一致，只是用户丢失了数据。&lt;/p&gt;
+&lt;h2 id="解决方法"&gt;解决方法
+&lt;/h2&gt;&lt;p&gt;要解决文件系统的崩溃一致性问题，需要保证文件系统从一个稳定的状态原子地转移到另一个稳定的状态。&lt;/p&gt;
+&lt;h3 id="lazy-approachfsck-fs-check检查文件系统状态"&gt;lazy approach：fsck （fs check）检查文件系统状态
+&lt;/h3&gt;&lt;p&gt;早期文件系统放任不一致，上电以后再解决这个问题。fsck 是一个在挂载文件系统之前检查并修复文件系统不一致的 Unix 工具。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;检查超级块，成员数值是否合理。&lt;/li&gt;
+&lt;li&gt;检查 inode、dnode 等和 bitmap 是否一致。不一致则以前者为准。&lt;/li&gt;
+&lt;li&gt;检查 inode 是否完整，如有没有类型等。有问题的 inode 直接清除并更新 bitmap。&lt;/li&gt;
+&lt;li&gt;检查 inode 的实际引用计数和 inode 自己记录的计数是否一致，以前者为准。如果找不到对于某个文件的引用，就放到 lost+found 目录下。&lt;/li&gt;
+&lt;li&gt;检查块的引用。如果有两个 inode 指向同一个块，要么清除一个坏的 inode，要么给他们各自复制一份。&lt;/li&gt;
+&lt;li&gt;检查 inode、dnode 指针合理性，如果指向不存在的地址，就清除。&lt;/li&gt;
+&lt;li&gt;检查目录合理性，如首先要含有.和..，目录包含的 inode 是分配过的，目录要满足树形结构。&lt;/li&gt;
+&lt;li&gt;构建 fsck 需要非常了解该文件系统的只是，并且 fsck 太慢了，不适用于 RAID。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="日志文件系统"&gt;日志文件系统
+&lt;/h3&gt;&lt;p&gt;为了避免写 IO 途中断电带来的不一致性，在文件系统层面可以采用日志技术（Journaling 或者 Write-Ahead-Logging）。很多文件系统，如 ext3/4、JFS、XFS 和 NTFS 等都是日志文件系统。
+文件系统日志（Journal 或 log）是硬盘中一个单独的文件。向盘中写数据的时候，先不写入真正的位置，而是将这个动作记录在 journal 里。这样，在真正写盘的时候即使掉电，也可以通过 journal 恢复。&lt;/p&gt;
+&lt;h4 id="写入"&gt;写入
+&lt;/h4&gt;&lt;p&gt;以 ext3 （ext 系列文件系统参考&lt;a class="link" href="https://junmajinlong.github.io/linux/ext_filesystem/index.html" target="_blank" rel="noopener"
+&gt;这里&lt;/a&gt;）为例&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/2.png"
+width="784"
+height="124"
+srcset="https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/2_hu_977253856ce288bb.png 480w, https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/2_hu_83b0612d311abc3d.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="632"
+data-flex-basis="1517px"
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/3.png"
+width="785"
+height="115"
+srcset="https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/3_hu_f837fe69227f2827.png 480w, https://realcedriccheng.github.io/p/atomicity_of_transaction_and_crash_consistency_of_file_system/3_hu_68872fb2f5399d81.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="682"
+data-flex-basis="1638px"
+&gt;&lt;/p&gt;
+&lt;p&gt;如果向某个文件追加一个 Db 块，则在 log 中写入新的 inode、bitmap 和 Db 以及 addr。并标记首尾。接下来将这三个 IO 实际写入盘上。这叫做 checkpoint。&lt;/p&gt;
+&lt;p&gt;在 journal 的时候断电怎么办？应该先写前 4 个块，成功返回后再写 TxE，保证原子性。写前 4 个块叫做 journal write，写 TxE 叫做 journal commit。 注意 HDD 可以保证 512B 以下写入的原子性。或者，在 ext4 中，首尾标志引入了 checksum，可以通过比较存储的 checksum 和计算出的是否一致判断有没有原子写入 journal。&lt;/p&gt;
+&lt;h4 id="恢复"&gt;恢复
+&lt;/h4&gt;&lt;p&gt;在 journal commit 之前断电，我们不恢复。在 checkpoint 途中断电，可以通过 journal 恢复。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;write barrier
+为了保证写入的顺序，可以等待上一个写入返回后再下发下一个写入。但是由于数据写到写 buffer 里面就返回了，这样还是没办法保证写入顺序。write barrier 是一个操作系统发送给盘的命令，当这个命令完成时，保证命令之前的写入全部完成，并且命令之后的写入全部没有完成。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;redo logging
+扫描所有已经 commit 的 journal，在盘上把 journal 的内容重新执行一遍。存在冗余写但是肯定一致。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;batching log updates
+不必每个操作都作为事务。可以积攒一段时间再写入 log。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;circular log
+已经 cp 的事务，它的 journal 可以 free 了。循环使用 log 空间。可以在 journal super block 里面标记有用的 journal。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;metadata journaling
+不把数据写到 journal 里，只写元数据。这要求先将数据落盘，然后将元数据的更新写到 journal 里，最后对这个元数据的事务做 cp，并释放相关 journal。NTFS 和 XFS 都这样干，Ext3 可以选择要不要这样干。
+不过，数据和元数据其实是可以一起写，只要保证数据写下去之后再 commit 就可以了。
+崩溃一致性的核心：先写内容（数据），再写指向内容的指针（元数据）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id="参考资料"&gt;参考资料
+&lt;/h1&gt;&lt;p&gt;&lt;a class="link" href="https://blog.csdn.net/TV8MbnO2Y2RfU/article/details/78103771" target="_blank" rel="noopener"
+&gt;https://blog.csdn.net/TV8MbnO2Y2RfU/article/details/78103771&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://pages.cs.wisc.edu/~remzi/OSTEP/file-journaling.pdf" target="_blank" rel="noopener"
+&gt;https://pages.cs.wisc.edu/~remzi/OSTEP/file-journaling.pdf&lt;/a&gt;&lt;/p&gt;</description></item><item><title>文件的相关概念</title><link>https://realcedriccheng.github.io/p/concepts_on_file/</link><pubDate>Sat, 07 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/concepts_on_file/</guid><description>&lt;h2 id="inode"&gt;inode
+&lt;/h2&gt;&lt;p&gt;inode 用来存储文件的元数据，包括普通文件、目录文件、块设备文件和字符设备文件等。读取某个文件之前，需要先将其 inode 读到内存中来，通过 inode 索引其数据块位置。&lt;/p&gt;
+&lt;p&gt;VFS 中的 inode 就叫 struct inode，具体文件系统的 inode 一般叫做 xxx_inode_info。&lt;/p&gt;
+&lt;p&gt;除根目录 inode 外，所有 inode 都在一个全局哈希表 inode_hashtable 中，便于查找某个文件系统特定 inode。这是为了管理内存中的 inode。如果 inode 在内存中，就通过哈希表找到，而不是从盘上再读出来。毕竟我们只知道 inode 号。&lt;/p&gt;
+&lt;p&gt;每个 inode 还包含在所属文件系统的链表中（super_block-&amp;gt;s_inodes、inode-&amp;gt;i_sb_list），对文件的操作通过 inode 中的 inode 操作表（i_op）和 file 操作表（i_fop）完成。&lt;/p&gt;
+&lt;p&gt;inode 操作表中提供的操作与文件的元数据有关，file 操作表中的操作与文件内容本身的读写。&lt;/p&gt;
+&lt;h2 id="dentry"&gt;dentry
+&lt;/h2&gt;&lt;p&gt;dentry 用来存储文件在内核文件系统树中的位置。目录、常规文件、符号链接、块设备文件、字符设备文件等文件系统对象都有 dentry。同样分为盘上 dentry、VFS dentry 和文件系统 dentry。&lt;/p&gt;
+&lt;p&gt;VFS dentry 通过 d_fsdata 指向文件系统 dentry（f2fs 中没有这一项），通过 d_op 指向文件系统提供的 dentry 操作表（f2fs 中也没有这个）。&lt;/p&gt;
+&lt;p&gt;dentry 和 inode 是多对一的关系，每个 dentry 只有一个 inode，由 d_inode 指向。每个 inode 可能有多个 dentry，由 i_dentry 指向 dentry 链表，例如硬链接。&lt;/p&gt;
+&lt;p&gt;dentry 之间有一对多的父子关系，d_parent 指向父 dentry，根目录的 dentry 是自己的父 dentry。d_subdirs 指向子 dentry 链表。&lt;/p&gt;
+&lt;p&gt;除了根 dentry 外，所有内存中的 dentry 加入到 dentry_hashtable 全局哈希表，便于查找给定目录下的文件。&lt;/p&gt;
+&lt;h2 id="孤儿节点-orphan-node"&gt;孤儿节点 orphan node
+&lt;/h2&gt;&lt;p&gt;orphan node 是无主的 node，orphan inode 是指一个文件不在任何目录中，不能被用户访问到。这样的文件仍然被某些进程占用，当没有进程使用时，该文件就被删除了。&lt;/p&gt;
+&lt;h2 id="文件的地址空间"&gt;文件的地址空间
+&lt;/h2&gt;&lt;p&gt;文件的地址空间用来管理文件映射到内存的页面，将文件系统中 file 的数据与内存 page cache 或者 swap cache 相关页面绑定到一起。这样就可以将盘上实际不连续的数据以页面为单位连续呈现出来。&lt;/p&gt;
+&lt;p&gt;表示地址空间的数据结构是 address_space 结构体，表示地址空间操作表的数据机构是 address_space_operations（a_ops）。&lt;/p&gt;
+&lt;p&gt;地址空间的属主（host）是 inode。对于块设备文件是其主 inode。&lt;/p&gt;
+&lt;p&gt;文件的地址空间以页面为单位组织成基数树。&lt;/p&gt;
+&lt;p&gt;地址空间的操作一般是对具体 page 的操作。包括 writepage、readpage 等。将内存中的某个 page 落盘或者将盘上某个 page 的数据读取到内存中。&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;注意，i_fop 中那些操作都是针对内存的。只有在这里才是真正的 IO。&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;读取文件时&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;以文件的f_mapping为参数，通过find_get_page查找page cache&lt;/li&gt;
+&lt;li&gt;查找到page cache且数据是最新的，就通过copy_page_to_iter，将数据拷贝到用户空间&lt;/li&gt;
+&lt;li&gt;没找到，就通过page_cache_alloc分配一个新页面，并将其加入page cache和LRU链表&lt;/li&gt;
+&lt;li&gt;然后调用对应的readpage函数，从磁盘中读入文件数据&lt;/li&gt;
+&lt;li&gt;最后还是通过copy_page_to_iter，将数据拷贝到用户空间&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="文件系统中的扩展属性xattr"&gt;文件系统中的扩展属性xattr
+&lt;/h2&gt;&lt;p&gt;文件的基础属性包括 inode ID、创建时间和大小等，比较有限。扩展属性 xattr 是一种允许用户为文件添加自定义属性的方法。xattr 以键值对的方式储存在文件外部。&lt;/p&gt;
+&lt;p&gt;通过 API 使用 xattr
+setfattr 设置属性，getfattr 获取属性。&lt;/p&gt;
+&lt;p&gt;xattr 的实现，参看文件系统相关概念。&lt;/p&gt;
+&lt;h1 id="参考资料"&gt;参考资料
+&lt;/h1&gt;&lt;p&gt;&lt;a class="link" href="https://blog.csdn.net/jinking01/article/details/106490467" target="_blank" rel="noopener"
+&gt;https://blog.csdn.net/jinking01/article/details/106490467&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://blog.csdn.net/u010039418/article/details/115773253" target="_blank" rel="noopener"
+&gt;https://blog.csdn.net/u010039418/article/details/115773253&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;《文件系统技术内幕》&lt;/p&gt;</description></item><item><title>文件系统相关概念</title><link>https://realcedriccheng.github.io/p/concepts_on_filesystem/</link><pubDate>Sat, 07 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/concepts_on_filesystem/</guid><description>&lt;img src="https://realcedriccheng.github.io/p/concepts_on_filesystem/filesystem.jpg" alt="Featured image of post 文件系统相关概念" /&gt;&lt;blockquote&gt;
+&lt;p&gt;Cover image from &lt;a class="link" href="https://unsplash.com/photos/assorted-color-folder-lot-o6GEPQXnqMY" target="_blank" rel="noopener"
+&gt;Unsplash&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h1 id="文件系统相关概念"&gt;文件系统相关概念
+&lt;/h1&gt;&lt;h2 id="硬盘文件系统和-vfs-上的数据结构"&gt;硬盘、文件系统和 VFS 上的数据结构
+&lt;/h2&gt;&lt;p&gt;很多数据结构都有三个版本，即持久化到盘上的版本、内存中文件系统的版本和内存中 VFS 使用的版本。例如超级块就有盘上的超级块、VFS 使用的 super_block 和文件系统使用的 xxx_sb_info。 这是因为 Linux 使用 VFS 向应用提供统一的文件系统操作接口，而每个文件系统具体的实现不一样。因此应用通过 VFS 的超级块来访问 xxx_sb_info 中的文件系统元数据和调用具体文件系统的操作函数。&lt;/p&gt;
+&lt;p&gt;但是上面的结构都是在内存中的，掉电后就没有了。而文件系统存在的意义就是管理持久化的数据。因此还需要将整个文件系统的元数据也保存在盘上。这就是盘上的超级块。这个超级块保存在盘上特定的区域，这样一上电就能读出来。&lt;/p&gt;
+&lt;h3 id="文件系统类型"&gt;文件系统类型
+&lt;/h3&gt;&lt;p&gt;要使用某种文件系统，必须先将其注册到 VFS 核心。注册的内容是文件系统类型 file_system_type。注册之后才能编译、装载。不再使用的文件系统类型应从 VFS 核心注销。&lt;/p&gt;
+&lt;p&gt;注册文件系统就是将该文件系统类型插入一个 file_systems 单链表中。目的是向 VFS 提供 get_sb 和 kill_sb 回调函数，从而装载或卸载该类型的文件系统。&lt;/p&gt;
+&lt;h3 id="超级块"&gt;超级块
+&lt;/h3&gt;&lt;p&gt;超级块用来保存整个文件系统的元数据。&lt;/p&gt;
+&lt;p&gt;超级块有盘上的和内存中的。内存中的超级块有 VFS 使用的共有的超级块和文件系统特有的超级块。前者叫做 super_block，后者一般叫做 xxx_sb_info。&lt;/p&gt;
+&lt;p&gt;VFS 超级块可以指向 fs 超级块（s_fs_info）以及 fs 提供的超级块操作表(s_op)。file_system_type 结构体将该类型文件系统实例对应的超级块实例放在 fs_supers 链表中，并通过 VFS 超级块的 s_instances 成员访问该链表。所有的 VFS 超级块对象还存在于另一个循环双链表中，通过 s_list 域链接。&lt;/p&gt;
+&lt;p&gt;对文件系统的操作通过 VFS 超级块调用具体文件系统提供的操作表（s_op）中的回调函数完成。文件系统提供的操作一般有&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;分配 inode：alloc_inode。文件系统可能有自己的 inode 结构 xxx_inode_info，也要一起分配。&lt;/li&gt;
+&lt;li&gt;销毁 inode：destroy_inode。若有则同时销毁 xxx_inode_info。&lt;/li&gt;
+&lt;li&gt;置脏 inode：dirty_inode。标记修改过的 inode ，便于写回操作。&lt;/li&gt;
+&lt;li&gt;写回 inode：write_inode。将磁盘上的 inode 读出来，用内存中的 inode 去更新它。然后往往不会执行 IO 写回，而是将更新过的 inode 置脏。&lt;/li&gt;
+&lt;li&gt;在删除 inode 之前做善后工作：drop_inode&lt;/li&gt;
+&lt;li&gt;删除 inode：delete_inode&lt;/li&gt;
+&lt;li&gt;释放超级块：put_super&lt;/li&gt;
+&lt;li&gt;将超级块写到磁盘上：write_super&lt;/li&gt;
+&lt;li&gt;做 cp：sync_fs&lt;/li&gt;
+&lt;li&gt;锁住和解锁文件系统：freeze_fs 和 unfreeze_fs&lt;/li&gt;
+&lt;li&gt;省略&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="inode"&gt;inode
+&lt;/h3&gt;&lt;p&gt;inode 用来存储文件系统对象的元数据，包括普通文件、目录文件、块设备文件和字符设备文件等。读取某个文件之前，需要先将其 inode 读到内存中来，通过 inode 索引其数据块位置。&lt;/p&gt;
+&lt;p&gt;VFS 中的 inode 就叫 struct inode，具体文件系统的 inode 一般叫做 xxx_inode_info。&lt;/p&gt;
+&lt;p&gt;除根目录 inode 外，所有 inode 都在一个全局哈希表 inode_hashtable 中，便于查找某个文件系统特定 inode。这是为了管理内存中的 inode。如果 inode 在内存中，就通过哈希表找到，而不是从盘上再读出来。毕竟我们只知道 inode 号。&lt;/p&gt;
+&lt;p&gt;每个 inode 还包含在所属文件系统的链表中（super_block-&amp;gt;s_inodes、inode-&amp;gt;i_sb_list），对文件的操作通过 inode 中的 inode 操作表（i_op）和 file 操作表（i_fop）完成。&lt;/p&gt;
+&lt;p&gt;inode 操作表中提供的操作与文件的元数据有关，file 操作表中的操作与文件内容本身的读写。&lt;/p&gt;
+&lt;h3 id="dentry"&gt;dentry
+&lt;/h3&gt;&lt;p&gt;dentry 用来存储文件在内核文件系统树中的位置。目录、常规文件、符号链接、块设备文件、字符设备文件等文件系统对象都有 dentry。同样分为盘上 dentry、VFS dentry 和文件系统 dentry。&lt;/p&gt;
+&lt;p&gt;VFS dentry 通过 d_fsdata 指向文件系统 dentry（f2fs 中没有这一项），通过 d_op 指向文件系统提供的 dentry 操作表（f2fs 中也没有这个）。&lt;/p&gt;
+&lt;p&gt;dentry 和 inode 是多对一的关系，每个 dentry 只有一个 inode，由 d_inode 指向。每个 inode 可能有多个 dentry，由 i_dentry 指向 dentry 链表，例如硬链接。&lt;/p&gt;
+&lt;p&gt;dentry 之间有一对多的父子关系，d_parent 指向父 dentry，根目录的 dentry 是自己的父 dentry。d_subdirs 指向子 dentry 链表。&lt;/p&gt;
+&lt;p&gt;除了根 dentry 外，所有内存中的 dentry 加入到 dentry_hashtable 全局哈希表，便于查找给定目录下的文件。&lt;/p&gt;
+&lt;h3 id="vfsmount"&gt;vfsmount
+&lt;/h3&gt;&lt;p&gt;vfsmount 反映了一个已经装载的文件系统实例，将文件系统连接到全局文件系统树。&lt;/p&gt;
+&lt;p&gt;vfsmount 也有父子关系，例如 linux 的根文件系统是 ext4，将 f2fs 装载到某个目录下，则 ext4 是 f2fs 的父文件系统。&lt;/p&gt;
+&lt;p&gt;除了根 vfsmount 外，所有的 vfsmount 也加入 mount_hashtable 全局哈希表，为了查找装载到特定装载点的文件系统。&lt;/p&gt;
+&lt;p&gt;在 linux 内核中一个文件的位置需要&amp;lt;vfsmount, dentry&amp;gt;二元组来确定，先确定挂载点，再从挂载点的相对位置找到文件。&lt;/p&gt;
+&lt;h2 id="xattr-在文件系统中的实现"&gt;xattr 在文件系统中的实现
+&lt;/h2&gt;&lt;p&gt;xattr参看文件相关概念。&lt;/p&gt;
+&lt;h3 id="ntfs"&gt;NTFS
+&lt;/h3&gt;&lt;p&gt;在 Windows 的 NTFS 文件系统中没有扩展属性的概念，而是有 ADS（Alternate Data Stream）的概念。&lt;/p&gt;
+&lt;h3 id="ext2"&gt;Ext2
+&lt;/h3&gt;&lt;p&gt;在 Linux 中，以 Ext2 为例。xattr 的内容存储在一个单独的逻辑块中，由描述头、扩展属性项和值组成。 534520072.jpg entry 存储了键和值的偏移量等信息。键向下生长、值向上生长。但是由于键和值的长度是可变的，因此 entry 和 value 的长度也是可变的，必须通过遍历 entry 才能找到键，通过 offs 才能找到 value。&lt;/p&gt;
+&lt;h3 id="f2fs"&gt;F2FS
+&lt;/h3&gt;&lt;p&gt;为了搞清楚 F2FS 中 xattr 的实现方法，必须解答三个问题：xattr 怎样存储，怎样设置，怎样查询。&lt;/p&gt;
+&lt;h4 id="数据结构"&gt;数据结构
+&lt;/h4&gt;&lt;p&gt;f2fs 中也存在 xattr 的 header 和 entry。&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-C" data-lang="C"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_xattr_header&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;h_magic&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* magic number for identification */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le32&lt;/span&gt; &lt;span class="n"&gt;h_refcount&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* reference count */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__u32&lt;/span&gt; &lt;span class="n"&gt;h_reserved&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="cm"&gt;/* zero right now */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;f2fs_xattr_entry&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__u8&lt;/span&gt; &lt;span class="n"&gt;e_name_index&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__u8&lt;/span&gt; &lt;span class="n"&gt;e_name_len&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;__le16&lt;/span&gt; &lt;span class="n"&gt;e_value_size&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="cm"&gt;/* size of attribute value */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;e_name&lt;/span&gt;&lt;span class="p"&gt;[];&lt;/span&gt; &lt;span class="cm"&gt;/* attribute name */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h4 id="接口"&gt;接口
+&lt;/h4&gt;&lt;p&gt;xattr 是 linux 的文件系统中广泛支持的功能，VFS 通过一系列函数接口调用具体文件系统的实现。f2fs/xattr.c 中的f2fs_xattr_user_handler、f2fs_xattr_trusted_handler、f2fs_xattr_advise_handler 和f2fs_xattr_security_handler 是 f2fs 中针对 xattr 的接口。&lt;/p&gt;
+&lt;h2 id="装载文件系统"&gt;装载文件系统
+&lt;/h2&gt;&lt;p&gt;装载子文件系统时，装载点目录不一定为空。装载后原来的子目录和文件都无法访问，只有卸载子文件系统后才能重新访问。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;检查装载目录路径有效性&lt;/li&gt;
+&lt;li&gt;构造子文件系统装载实例&lt;/li&gt;
+&lt;li&gt;使用现有的或创建新的超级块实例，关联到 vfsmount 对象&lt;/li&gt;
+&lt;li&gt;填充超级块 fill_super&lt;/li&gt;
+&lt;li&gt;将该装载实例挂到父文件系统的装载点，添加到内核的文件系统树，实际就是一些链表操作和填充变量操作&lt;/li&gt;
+&lt;/ul&gt;</description></item></channel></rss>

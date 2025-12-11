@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>LPDDR on The Orange Flavored Whisper</title><link>https://realcedriccheng.github.io/tags/lpddr/</link><description>Recent content in LPDDR on The Orange Flavored Whisper</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 08 Dec 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://realcedriccheng.github.io/tags/lpddr/index.xml" rel="self" type="application/rss+xml"/><item><title>什么是内存</title><link>https://realcedriccheng.github.io/p/what_is_memory/</link><pubDate>Sun, 08 Dec 2024 00:00:00 +0000</pubDate><guid>https://realcedriccheng.github.io/p/what_is_memory/</guid><description>&lt;h2 id="什么是内存"&gt;什么是内存
+&lt;/h2&gt;&lt;p&gt;内存是与CPU直接交换数据的内部存储器。内存中存放的是计算机运行时必须的数据，包括操作系统、进程等。任何数据在被CPU操作之前，必须先读入内存。&lt;/p&gt;
+&lt;p&gt;内存属于计算机系统内部，而外存属于计算机系统的外设。内存可以看作是外存的cache。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一种比喻是：如果您有一张书桌和一个文件柜，书桌代表电脑的内存。您需要马上使用的材料留在书桌上，以便轻松找到。当您离开办公室时，留在桌上的任何文件都会被扔掉。文件柜中的任何东西都会保留下来。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;内存通常由随机访问存储器（Random Access Memory, RAM）构成。因此内存和RAM有时是混用的。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RAM分为动态RAM（DRAM）和静态RAM（SRAM），内存由DRAM构成。
+&lt;ul&gt;
+&lt;li&gt;SRAM比DRAM更快、功耗更低。但是容量更小、价格更高、设计更复杂，通常用于CPU内部的高速缓存。详见：（本站）存储的层次结构（Memory Hierarchy） 、&lt;a class="link" href="https://www.amazonaws.cn/knowledge/what-is-memory/" target="_blank" rel="noopener"
+&gt;https://www.amazonaws.cn/knowledge/what-is-memory/&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;下图的黑色部分是存储器模块，通过存储控制器管理。存储器模块中有 DRAM 芯片。&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/what_is_memory/31a17a35b0d7da91e0b530f67109dc52_MD5.jpeg"
+width="450"
+height="300"
+srcset="https://realcedriccheng.github.io/p/what_is_memory/31a17a35b0d7da91e0b530f67109dc52_MD5_hu_79e1a856ab6535a4.jpeg 480w, https://realcedriccheng.github.io/p/what_is_memory/31a17a35b0d7da91e0b530f67109dc52_MD5_hu_fe71e343f4f6d0dc.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="150"
+data-flex-basis="360px"
+&gt;&lt;/p&gt;
+&lt;h2 id="内存的作用"&gt;内存的作用
+&lt;/h2&gt;&lt;p&gt;内存的数据是临时的、易失的，而外存的数据是持久存储的。电脑关机时，内存是空的，所有的数据都保存在外存上。&lt;/p&gt;
+&lt;p&gt;电脑启动时，BIOS先自检，然后通过引导加载程序将操作系统加载进内存，这样才能通过操作系统使用计算机。&lt;/p&gt;
+&lt;p&gt;操作系统想要执行程序，必须将程序的代码读入内存，并在内存上分配程序必须的地址空间。此外，进程想要使用任何文件，都必须先将其内容读入内存。&lt;/p&gt;
+&lt;p&gt;CPU只能通过内存访问数据，因此内存容量与程序运行速度、并发处理任务的效率很有关系。&lt;/p&gt;
+&lt;h2 id="什么是ddrlpddr"&gt;什么是DDR、LPDDR？
+&lt;/h2&gt;&lt;p&gt;经常看到DDR4、DDR5等表述，这些表述是什么意思？&lt;/p&gt;
+&lt;h3 id="ddr"&gt;DDR
+&lt;/h3&gt;&lt;p&gt;双倍数据率同步动态随机存储器（Double Data Rate Synchronous Dynamic Random Access Memory, DDR SDRAM）。DDR是DDR SDRAM的简称。&lt;/p&gt;
+&lt;p&gt;其中&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;SDRAM代表同步动态随机存取存储器，SDRAM是在DRAM的基础上增加同步和双区域的功能，使得CPU能与SDRAM的时钟同步，因此SDRAM比DRAM访问更快。&lt;/li&gt;
+&lt;li&gt;DDR代表双倍数据传输率。一个时钟周期内，SDRAM只在上升沿传输一次数据，而DDR则在上升沿和下降沿各传输一次数据。所以数据传输速度是CPU主频的两倍。因此DDR SDRAM比SDRAM更快。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;参考：&lt;a class="link" href="https://zh.wikipedia.org/wiki/DDR_SDRAM" target="_blank" rel="noopener"
+&gt;https://zh.wikipedia.org/wiki/DDR_SDRAM&lt;/a&gt;、&lt;a class="link" href="https://zh.wikipedia.org/wiki/SDRAM" target="_blank" rel="noopener"
+&gt;https://zh.wikipedia.org/wiki/SDRAM&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;DDR5是最新的第5代DDR，在2021年推出。与DDR4相比，DDR5具有以下优势。&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/what_is_memory/ae6f5b1a9bfbb47a7c84f1fe07a3bdbf_MD5.jpeg"
+width="748"
+height="301"
+srcset="https://realcedriccheng.github.io/p/what_is_memory/ae6f5b1a9bfbb47a7c84f1fe07a3bdbf_MD5_hu_c8fce6d8d82aea56.jpeg 480w, https://realcedriccheng.github.io/p/what_is_memory/ae6f5b1a9bfbb47a7c84f1fe07a3bdbf_MD5_hu_7bafc82ff9685d21.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="248"
+data-flex-basis="596px"
+&gt;&lt;/p&gt;
+&lt;p&gt;参考：&lt;a class="link" href="https://www.rambus.com/blogs/ddr5-%E4%B8%8E-ddr4-%E6%89%80%E6%9C%89%E8%AE%BE%E8%AE%A1%E6%8C%91%E6%88%98%E4%B8%8E%E4%BC%98%E5%8A%BF/?lang=zh-hans" target="_blank" rel="noopener"
+&gt;https://www.rambus.com/blogs/ddr5-%E4%B8%8E-ddr4-%E6%89%80%E6%9C%89%E8%AE%BE%E8%AE%A1%E6%8C%91%E6%88%98%E4%B8%8E%E4%BC%98%E5%8A%BF/?lang=zh-hans&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;此外，DRAM和各代DDR SDRAM的数据如下。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;DRAM&lt;/th&gt;
+&lt;th&gt;DDR&lt;/th&gt;
+&lt;th&gt;DDR2&lt;/th&gt;
+&lt;th&gt;DDR3&lt;/th&gt;
+&lt;th&gt;DDR4&lt;/th&gt;
+&lt;th&gt;DDR5&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;預取&lt;/td&gt;
+&lt;td&gt;1 - 位元&lt;/td&gt;
+&lt;td&gt;2 - 位元&lt;/td&gt;
+&lt;td&gt;4 - 位元&lt;/td&gt;
+&lt;td&gt;8 - 位元&lt;/td&gt;
+&lt;td&gt;每記憶庫位元&lt;/td&gt;
+&lt;td&gt;16 - 位元&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;資料速率 (MT/s)&lt;/td&gt;
+&lt;td&gt;100 - 166&lt;/td&gt;
+&lt;td&gt;266 - 400&lt;/td&gt;
+&lt;td&gt;533 - 800&lt;/td&gt;
+&lt;td&gt;1066 - 1600&lt;/td&gt;
+&lt;td&gt;2133 - 5100&lt;/td&gt;
+&lt;td&gt;3200 - 6400&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;傳輸速率 (GB/s)&lt;/td&gt;
+&lt;td&gt;0.8 - 1.3&lt;/td&gt;
+&lt;td&gt;2.1 - 3.2&lt;/td&gt;
+&lt;td&gt;4.2 - 6.4&lt;/td&gt;
+&lt;td&gt;8.5 - 14.9&lt;/td&gt;
+&lt;td&gt;17 - 25.6&lt;/td&gt;
+&lt;td&gt;38.4 - 51.2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;電壓 (V)&lt;/td&gt;
+&lt;td&gt;3.3&lt;/td&gt;
+&lt;td&gt;2.5 - 2.6&lt;/td&gt;
+&lt;td&gt;1.8&lt;/td&gt;
+&lt;td&gt;1.35 - 1.5&lt;/td&gt;
+&lt;td&gt;1.2&lt;/td&gt;
+&lt;td&gt;1.1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;a class="link" href="https://www.crucial.tw/articles/about-memory/difference-among-ddr2-ddr3-ddr4-and-ddr5-memory" target="_blank" rel="noopener"
+&gt;https://www.crucial.tw/articles/about-memory/difference-among-ddr2-ddr3-ddr4-and-ddr5-memory&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://realcedriccheng.github.io/p/what_is_memory/56903f46d67a878ca5bd5eb4a733503c_MD5.jpeg"
+width="500"
+height="428"
+srcset="https://realcedriccheng.github.io/p/what_is_memory/56903f46d67a878ca5bd5eb4a733503c_MD5_hu_e24b1d7e898446bb.jpeg 480w, https://realcedriccheng.github.io/p/what_is_memory/56903f46d67a878ca5bd5eb4a733503c_MD5_hu_d8c5e2a33d28866b.jpeg 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="116"
+data-flex-basis="280px"
+&gt;&lt;/p&gt;
+&lt;p&gt;注意：一般一种主板只支持一种类型的内存。因为各代DDR之间的物理结构（插槽不一样）、电气规范、工作电压、时钟速度和通信协议上都有差异。不同代内存不能混用。&lt;/p&gt;
+&lt;h3 id="lpddr"&gt;LPDDR
+&lt;/h3&gt;&lt;p&gt;LPDDR的全称是Low Power Double Data Rate SDRAM，也即移动DDR（Mobile DDR, MDDR或Low Power DDR, LPDDR）。&lt;/p&gt;
+&lt;p&gt;MDDR的运行电压（工作电压）低于DDR的标准电压，因此MDDR具有低功耗、高可靠性的特点。适合移动设备使用。&lt;/p&gt;
+&lt;p&gt;LPDDR5是2019年推出的，最新规范为LPDDR5X（2021）。&lt;/p&gt;
+&lt;p&gt;参考：&lt;a class="link" href="https://zh.wikipedia.org/wiki/%E7%A7%BB%E5%8A%A8DDR#LPDDR5" target="_blank" rel="noopener"
+&gt;https://zh.wikipedia.org/wiki/移动DDR#LPDDR5&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id="未列出的参考资料"&gt;未列出的参考资料
+&lt;/h2&gt;&lt;p&gt;&lt;a class="link" href="https://www.crucial.cn/articles/about-memory/what-does-ram-stand-for" target="_blank" rel="noopener"
+&gt;https://www.crucial.cn/articles/about-memory/what-does-ram-stand-for&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://www.kingston.com/cn/blog/pc-performance/difference-between-memory-storage" target="_blank" rel="noopener"
+&gt;https://www.kingston.com/cn/blog/pc-performance/difference-between-memory-storage&lt;/a&gt;&lt;/p&gt;</description></item></channel></rss>
